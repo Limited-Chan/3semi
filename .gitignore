@@ -1,0 +1,6 @@
+﻿Data/*.tsv
+Data/*.csv
+analysis_output/
+Data/analysis_output/
+__pycache__/
+*.pyc
