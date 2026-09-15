@@ -44,11 +44,15 @@ AGE_WIDTH = {band: hi - lo for band, (lo, hi) in AGE_BOUNDS.items()}
 
 def load_data() -> dict[str, pd.DataFrame]:
     overview = pd.read_csv(DATA_DIR / "00_overview.csv", encoding="utf-8-sig")
+    start_year = pd.read_csv(DATA_DIR / "09_start_year.csv", encoding="utf-8-sig")
     age = pd.read_csv(DATA_DIR / "06_building_age.csv", encoding="utf-8-sig")
     layout = pd.read_csv(DATA_DIR / "03_layout.csv", encoding="utf-8-sig")
     quality = pd.read_csv(DATA_DIR / "91_quality_report.csv", encoding="utf-8-sig")
     metadata = json.loads((DATA_DIR / "92_analysis_metadata.json").read_text(encoding="utf-8"))
-    return {"overview": overview, "age": age, "layout": layout, "quality": quality, "metadata": metadata}
+    return {
+        "overview": overview, "start_year": start_year, "age": age,
+        "layout": layout, "quality": quality, "metadata": metadata,
+    }
 
 
 def step0_duration_overview(overview: pd.DataFrame) -> None:
@@ -88,6 +92,17 @@ def step0_duration_overview(overview: pd.DataFrame) -> None:
     print(f"  平均: {mean:.1f}日 / 中央値: {median:.1f}日 / Q1: {q1:.1f}日 / Q3: {q3:.1f}日 / IQR: {iqr:.1f}日")
     print(f"  平均が中央値の約{mean / median:.1f}倍 → 右に強く歪んだ分布(少数の長期掲載が平均を押し上げている)")
     print(f"  7日以内終了率: {row['7日以内終了率']:.1%} / 14日以内: {row['14日以内終了率']:.1%} / 30日以内: {row['30日以内終了率']:.1%}")
+
+
+def step0_analysis_period(start_year: pd.DataFrame) -> str:
+    """計画書 0.前提「分析対象の期間・地域」のうち、期間(掲載開始年の範囲)を確認する。"""
+    years = start_year.sort_values("掲載開始年")
+    lo, hi = int(years["掲載開始年"].min()), int(years["掲載開始年"].max())
+    bulk = years[years["件数"] >= 1000]
+    bulk_lo, bulk_hi = int(bulk["掲載開始年"].min()), int(bulk["掲載開始年"].max())
+    print(f"  掲載開始年の範囲: {lo}〜{hi}年(件数1,000件以上が続くのは{bulk_lo}〜{bulk_hi}年。"
+          f"{lo}〜{bulk_lo - 1}年は件数が少なく、長期未成約の外れ値的な物件が中心)")
+    return f"{lo}〜{hi}年(主要データは{bulk_lo}〜{bulk_hi}年)"
 
 
 def step1_overview(data: dict) -> None:
@@ -232,6 +247,7 @@ def step3_age_vs_duration(age: pd.DataFrame) -> None:
     x = [AGE_MIDPOINT[a] for a in df["築年数帯"]]
     y_mean = df["掲載期間平均日数"]
     r_pearson, _ = stats.pearsonr(x, y_mean)
+    r_spearman, _ = stats.spearmanr(x, y_mean)
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 
@@ -239,7 +255,7 @@ def step3_age_vs_duration(age: pd.DataFrame) -> None:
     axes[0].plot(x, df["掲載期間中央値"], "s--", label="中央値日数")
     axes[0].set_xlabel("築年数帯の代表値(年)")
     axes[0].set_ylabel("掲載期間(日)")
-    axes[0].set_title(f"築年数 × 掲載期間(帯単位, 参考r={r_pearson:.2f})")
+    axes[0].set_title(f"築年数 × 掲載期間(帯単位, 参考r={r_pearson:.2f}, ρ={r_spearman:.2f})")
     axes[0].legend()
 
     _quartile_box(
@@ -257,6 +273,7 @@ def step3_age_vs_duration(age: pd.DataFrame) -> None:
 
     print("\n[手順3-1] 築年数 × 掲載期間")
     print(f"  帯単位の参考ピアソン相関係数(代表年 vs 平均掲載期間): {r_pearson:.3f}")
+    print(f"  帯単位の参考スピアマン相関係数(順位相関): {r_spearman:.3f}")
     print("  ※ listing単位の生データが無いため、真の相関係数(全件ベース)とは異なる近似値。")
 
 
@@ -287,8 +304,12 @@ def step3_layout_vs_duration(layout: pd.DataFrame) -> None:
     print(table.to_string(index=False))
 
 
-def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame, age_stats: dict[str, float]) -> str:
+def step4_representative_values(
+    age: pd.DataFrame, layout: pd.DataFrame, age_stats: dict[str, float], period: str,
+) -> str:
     lines = ["# 築年数・間取り分析レポート", ""]
+    lines.append(f"**対象地域:** 東京都国分寺市 / **対象期間(掲載開始年):** {period}")
+    lines.append("")
     lines.append(
         "本レポートは `analysis_kokubunji/` 配下の集計済みCSV(帯別・カテゴリ別の件数と"
         "掲載期間統計量)を用いて作成した。物件1件ごとの生データ(bukken_rent TSV)は"
@@ -353,13 +374,14 @@ def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame, age_sta
 
 def main() -> None:
     data = load_data()
+    period = step0_analysis_period(data["start_year"])
     step0_duration_overview(data["overview"])
     step1_overview(data)
     age_stats = step2_age_distribution(data["age"])
     step2_layout_distribution(data["layout"])
     step3_age_vs_duration(data["age"])
     step3_layout_vs_duration(data["layout"])
-    report = step4_representative_values(data["age"], data["layout"], age_stats)
+    report = step4_representative_values(data["age"], data["layout"], age_stats, period)
     report_path = Path(__file__).resolve().parent / "report.md"
     report_path.write_text(report, encoding="utf-8")
     print(f"\nレポートを書き出しました: {report_path}")
