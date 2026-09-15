@@ -28,14 +28,18 @@ OUT_DIR = Path(__file__).resolve().parent / "output"
 OUT_DIR.mkdir(exist_ok=True)
 
 AGE_ORDER = ["築5年以下", "築6〜10年", "築11〜20年", "築21〜30年", "築31〜40年", "築41年以上"]
-AGE_MIDPOINT = {
-    "築5年以下": 2.5,
-    "築6〜10年": 8,
-    "築11〜20年": 15.5,
-    "築21〜30年": 25.5,
-    "築31〜40年": 35.5,
-    "築41年以上": 45,  # 上限なしの帯のため仮の代表値(下限+4年)を採用
+# 各帯の下限・上限(年)。「築41年以上」は上限なしの帯のため、直前の帯幅(10年)を
+# 目安に上限60年と仮定する(※この仮定は結果に注記する)。
+AGE_BOUNDS = {
+    "築5年以下": (0, 5),
+    "築6〜10年": (5, 10),
+    "築11〜20年": (10, 20),
+    "築21〜30年": (20, 30),
+    "築31〜40年": (30, 40),
+    "築41年以上": (40, 60),
 }
+AGE_MIDPOINT = {band: (lo + hi) / 2 for band, (lo, hi) in AGE_BOUNDS.items()}
+AGE_WIDTH = {band: hi - lo for band, (lo, hi) in AGE_BOUNDS.items()}
 
 
 def load_data() -> dict[str, pd.DataFrame]:
@@ -66,35 +70,82 @@ def step1_overview(data: dict) -> None:
     print("\n※ 欠損・異常値・重複はいずれも集計元スクリプト側で既に除外/処理済み。")
 
 
-def step2_age_distribution(age: pd.DataFrame) -> None:
+def grouped_age_stats(counts: pd.Series) -> dict[str, float]:
+    """帯(不均等幅)ごとの件数から、区間内一様分布を仮定したグループ化データの
+    平均・標準偏差・中央値・最頻値を求める(生データが無いための近似値)。"""
+    bands = list(counts.index)
+    n = counts.sum()
+
+    mean = sum(counts[b] * AGE_MIDPOINT[b] for b in bands) / n
+    variance = sum(
+        counts[b] * ((AGE_MIDPOINT[b] - mean) ** 2 + AGE_WIDTH[b] ** 2 / 12)
+        for b in bands
+    ) / n
+    std = variance ** 0.5
+
+    cum = 0
+    median = None
+    for b in bands:
+        lo, hi = AGE_BOUNDS[b]
+        if cum + counts[b] >= n / 2:
+            median = lo + (n / 2 - cum) / counts[b] * (hi - lo)
+            break
+        cum += counts[b]
+
+    density = {b: counts[b] / AGE_WIDTH[b] for b in bands}
+    modal_band = max(density, key=density.get)
+    i = bands.index(modal_band)
+    lo, hi = AGE_BOUNDS[modal_band]
+    f1 = density[modal_band]
+    f0 = density[bands[i - 1]] if i > 0 else 0
+    f2 = density[bands[i + 1]] if i < len(bands) - 1 else 0
+    denom = (f1 - f0) + (f1 - f2)
+    mode = lo + (f1 - f0) / denom * (hi - lo) if denom else (lo + hi) / 2
+
+    return {"mean": mean, "std": std, "median": median, "mode": mode, "modal_band": modal_band}
+
+
+def step2_age_distribution(age: pd.DataFrame) -> dict[str, float]:
     df = age.set_index("築年数帯").loc[AGE_ORDER]
     counts = df["件数"]
+    s = grouped_age_stats(counts)
 
-    weighted_mean = np.average([AGE_MIDPOINT[a] for a in AGE_ORDER], weights=counts)
-    mode_band = counts.idxmax()
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+    lefts = [AGE_BOUNDS[b][0] for b in AGE_ORDER]
+    widths = [AGE_WIDTH[b] for b in AGE_ORDER]
+    heights = [counts[b] / AGE_WIDTH[b] for b in AGE_ORDER]
+    bars = ax.bar(lefts, heights, width=widths, align="edge", color="#4C72B0", edgecolor="white")
+    for b, bar in zip(AGE_ORDER, bars):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2, bar.get_height(),
+            f"{counts[b]:,}件", ha="center", va="bottom", fontsize=8,
+        )
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(AGE_ORDER, counts, color="#4C72B0")
-    ax.set_xlabel("築年数帯")
-    ax.set_ylabel("件数")
-    ax.set_title("築年数の分布(帯別件数)")
-    ax.axhline(0, color="black", linewidth=0.8)
-    for i, v in enumerate(counts):
-        ax.text(i, v, f"{v:,}", ha="center", va="bottom", fontsize=9)
+    ax.axvspan(s["mean"] - s["std"], s["mean"] + s["std"], color="gray", alpha=0.15, label="平均±標準偏差")
+    ax.axvline(s["mean"], color="crimson", linewidth=1.5, label=f"平均 {s['mean']:.1f}年")
+    ax.axvline(s["median"], color="darkorange", linestyle="--", linewidth=1.5, label=f"中央値 {s['median']:.1f}年")
+    ax.axvline(s["mode"], color="purple", linestyle=":", linewidth=1.5, label=f"最頻値(推定) {s['mode']:.1f}年")
+
+    ax.set_xlabel("築年数(年)")
+    ax.set_ylabel("度数密度(件/年)")
+    ax.set_title("築年数の分布(帯の幅で正規化したヒストグラム)")
+    ax.set_xticks([0, 5, 10, 20, 30, 40, 60])
+    ax.legend(fontsize=9)
     fig.text(
-        0.01, -0.02,
-        f"帯の代表値による加重平均年数(目安): 約{weighted_mean:.1f}年 / 最頻値の帯: {mode_band}\n"
-        "※ 生データが無いため、既存の帯区分(不均等幅)をそのまま採用。1年/5年刻みのヒストグラムは作成不可。",
+        0.01, -0.04,
+        f"標準偏差: {s['std']:.1f}年(帯内は一様分布と仮定した近似値)\n"
+        "※ 生データが無いため、帯別件数から算出したグループ化統計量。既存の帯区分(不均等幅)をそのまま採用し、"
+        "高さは件数/帯幅(度数密度)で正規化。「築41年以上」は上限を60年と仮定。",
         fontsize=8, color="dimgray",
     )
-    plt.xticks(rotation=20)
     fig.tight_layout()
     fig.savefig(OUT_DIR / "01_age_distribution.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
     print("\n[手順2-1] 築年数分布")
-    print(f"  最頻値の帯: {mode_band} ({counts.max():,}件)")
-    print(f"  帯代表値による加重平均年数(目安): {weighted_mean:.1f}年")
+    print(f"  平均: {s['mean']:.1f}年 / 中央値: {s['median']:.1f}年 / "
+          f"最頻値(推定): {s['mode']:.1f}年(最多密度の帯: {s['modal_band']}) / 標準偏差: {s['std']:.1f}年")
+    return s
 
 
 def step2_layout_distribution(layout: pd.DataFrame) -> None:
@@ -196,7 +247,7 @@ def step3_layout_vs_duration(layout: pd.DataFrame) -> None:
     print(table.to_string(index=False))
 
 
-def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame) -> str:
+def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame, age_stats: dict[str, float]) -> str:
     lines = ["# 築年数・間取り分析レポート", ""]
     lines.append(
         "本レポートは `analysis_kokubunji/` 配下の集計済みCSV(帯別・カテゴリ別の件数と"
@@ -207,6 +258,11 @@ def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame) -> str:
     lines.append("")
 
     lines.append("## 築年数")
+    lines.append(
+        f"グループ化統計量(近似): 平均{age_stats['mean']:.1f}年 / 中央値{age_stats['median']:.1f}年 / "
+        f"最頻値(推定){age_stats['mode']:.1f}年 / 標準偏差{age_stats['std']:.1f}年"
+    )
+    lines.append("")
     for _, row in age.sort_values("件数", ascending=False).iterrows():
         skew = "平均 > 中央値(右に歪み)" if row["掲載期間平均日数"] > row["掲載期間中央値"] else "平均 ≈ 中央値"
         lines.append(
@@ -217,8 +273,12 @@ def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame) -> str:
     lines.append(
         "築年数帯ごとの掲載期間は、どの帯も平均が中央値を上回っており、右に裾を引く"
         "分布(長期掲載の少数の物件に平均が引っ張られる形)になっていると考えられる。"
-        "そのため代表値としては外れ値の影響を受けにくい**中央値**が妥当。"
-        "築年数自体の代表値は、最も件数が多い帯(最頻値)で捉えるのが実務上分かりやすい。"
+        "そのため代表値としては外れ値の影響を受けにくい**中央値**が妥当。\n\n"
+        f"築年数自体の分布も、平均({age_stats['mean']:.1f}年)が中央値({age_stats['median']:.1f}年)"
+        f"よりやや大きく、右に緩やかに裾を引く形になっている。単純な件数最多の帯は「築11〜20年」だが、"
+        f"帯の幅(10年)を考慮した度数密度でみると最も密度が高いのは「築5年以下」の帯であり、"
+        f"最頻値は約{age_stats['mode']:.1f}年と推定される。したがって築年数の代表値も、"
+        "件数最多の帯だけで判断せず中央値・最頻値をあわせて確認するのが妥当。"
     )
     lines.append("")
 
@@ -254,11 +314,11 @@ def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame) -> str:
 def main() -> None:
     data = load_data()
     step1_overview(data)
-    step2_age_distribution(data["age"])
+    age_stats = step2_age_distribution(data["age"])
     step2_layout_distribution(data["layout"])
     step3_age_vs_duration(data["age"])
     step3_layout_vs_duration(data["layout"])
-    report = step4_representative_values(data["age"], data["layout"])
+    report = step4_representative_values(data["age"], data["layout"], age_stats)
     report_path = Path(__file__).resolve().parent / "report.md"
     report_path.write_text(report, encoding="utf-8")
     print(f"\nレポートを書き出しました: {report_path}")
