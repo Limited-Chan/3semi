@@ -43,11 +43,51 @@ AGE_WIDTH = {band: hi - lo for band, (lo, hi) in AGE_BOUNDS.items()}
 
 
 def load_data() -> dict[str, pd.DataFrame]:
+    overview = pd.read_csv(DATA_DIR / "00_overview.csv", encoding="utf-8-sig")
     age = pd.read_csv(DATA_DIR / "06_building_age.csv", encoding="utf-8-sig")
     layout = pd.read_csv(DATA_DIR / "03_layout.csv", encoding="utf-8-sig")
     quality = pd.read_csv(DATA_DIR / "91_quality_report.csv", encoding="utf-8-sig")
     metadata = json.loads((DATA_DIR / "92_analysis_metadata.json").read_text(encoding="utf-8"))
-    return {"age": age, "layout": layout, "quality": quality, "metadata": metadata}
+    return {"overview": overview, "age": age, "layout": layout, "quality": quality, "metadata": metadata}
+
+
+def step0_duration_overview(overview: pd.DataFrame) -> None:
+    """計画書 0.前提「掲載期間そのものの分布確認」に対応。
+    国分寺市全体(1行)の集計値のみ利用可能なため、平均・中央値・四分位範囲・
+    歪度の目安(平均と中央値の差)を確認する。"""
+    row = overview.iloc[0]
+    mean, median = row["掲載期間平均日数"], row["掲載期間中央値"]
+    q1, q3 = row["掲載期間25パーセンタイル"], row["掲載期間75パーセンタイル"]
+    iqr = q3 - q1
+
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    stats_list = [{"med": median, "q1": q1, "q3": q3, "whislo": q1, "whishi": q3, "fliers": []}]
+    bxp_artists = ax.bxp(stats_list, vert=False, showfliers=False, patch_artist=True, positions=[0])
+    bxp_artists["boxes"][0].set_facecolor("#8172B2")
+    bxp_artists["boxes"][0].set_alpha(0.6)
+    ax.axvline(mean, color="crimson", linewidth=1.5, label=f"平均 {mean:.1f}日")
+    ax.set_yticks([])
+    ax.set_xlabel("掲載期間(日)")
+    ax.set_title(f"掲載期間の分布(国分寺市全体, n={int(row['件数']):,})")
+    ax.legend(fontsize=9)
+    fig.text(
+        0.01, -0.05,
+        f"中央値{median:.1f}日 / Q1={q1:.1f}日 / Q3={q3:.1f}日(IQR={iqr:.1f}日) / "
+        f"7日以内終了率{row['7日以内終了率']:.1%} / 14日以内{row['14日以内終了率']:.1%} / 30日以内{row['30日以内終了率']:.1%}\n"
+        "※ 都市全体1行の集計値のみのため、上記の箱(Q1-中央値-Q3)と平均線から分布形状を概観する。",
+        fontsize=8, color="dimgray",
+    )
+    fig.tight_layout()
+    fig.savefig(OUT_DIR / "00_duration_overview.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    print("=" * 60)
+    print("手順0(前提): 掲載期間そのものの分布確認")
+    print("=" * 60)
+    print(f"  件数: {int(row['件数']):,}")
+    print(f"  平均: {mean:.1f}日 / 中央値: {median:.1f}日 / Q1: {q1:.1f}日 / Q3: {q3:.1f}日 / IQR: {iqr:.1f}日")
+    print(f"  平均が中央値の約{mean / median:.1f}倍 → 右に強く歪んだ分布(少数の長期掲載が平均を押し上げている)")
+    print(f"  7日以内終了率: {row['7日以内終了率']:.1%} / 14日以内: {row['14日以内終了率']:.1%} / 30日以内: {row['30日以内終了率']:.1%}")
 
 
 def step1_overview(data: dict) -> None:
@@ -313,6 +353,7 @@ def step4_representative_values(age: pd.DataFrame, layout: pd.DataFrame, age_sta
 
 def main() -> None:
     data = load_data()
+    step0_duration_overview(data["overview"])
     step1_overview(data)
     age_stats = step2_age_distribution(data["age"])
     step2_layout_distribution(data["layout"])
