@@ -1,6 +1,22 @@
-﻿Data/*.tsv
-Data/*.csv
-analysis_output/
-Data/analysis_output/
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# Raw / extracted data
+*.tsv
+*.tsv.gz
+prepared/
+data/
+raw/
+
+# Generated analysis outputs
+results/
+results_*/
+v23_*/
+*.partial
+*.tmp
+*.zip
