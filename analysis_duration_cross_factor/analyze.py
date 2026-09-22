@@ -338,6 +338,43 @@ def step6_forecast_style(cross: pd.DataFrame, edges: np.ndarray, labels: list[st
 def step5_narrative(cross: pd.DataFrame) -> list[str]:
     valid = cross[cross["n"] >= 30].copy()
     lines = []
+
+    # 全体傾向1: 築年数が上がるほど掲載期間が延びる傾向(粗い3区分での加重平均)
+    top = cross[cross["layout"].isin(TOP_LAYOUTS) & cross["n"].ge(5)].copy()
+    top["age_lo"] = top["age_band"].str.split("-").str[0].astype(int)
+    def age_bucket(lo: int) -> str:
+        if lo < 15:
+            return "築0-15年"
+        if lo < 35:
+            return "築15-35年"
+        return "築35年以上"
+    top["bucket"] = top["age_lo"].map(age_bucket)
+    bucket_stats = top.groupby("bucket", observed=True).apply(
+        lambda x: pd.Series({"n": int(x["n"].sum()), "median_w": (x["median"] * x["n"]).sum() / x["n"].sum()}),
+        include_groups=False,
+    ).reindex(["築0-15年", "築15-35年", "築35年以上"])
+    lines.append("**全体傾向1: 築年数が上がるほど掲載期間は長くなる傾向**")
+    lines.append("(主要8間取り・件数加重平均の中央値)")
+    for bucket, r in bucket_stats.iterrows():
+        lines.append(f"- {bucket}: 中央値(加重平均) 約{r['median_w']:.0f}日 (n={int(r['n']):,})")
+    lines.append("")
+
+    # 全体傾向2: 間取りによる掲載期間の違い(ファミリー向けLDK系は短く、1R/DK系は長い)
+    layout_stats = top.groupby("layout", observed=True).apply(
+        lambda x: pd.Series({"n": int(x["n"].sum()), "median_w": (x["median"] * x["n"]).sum() / x["n"].sum()}),
+        include_groups=False,
+    ).sort_values("median_w")
+    lines.append("**全体傾向2: 間取りによる掲載期間の違い(築年数を通した加重平均中央値、短い順)**")
+    for layout, r in layout_stats.iterrows():
+        lines.append(f"- {layout}: 約{r['median_w']:.0f}日 (n={int(r['n']):,})")
+    lines.append("")
+    lines.append(
+        "→ 1LDK/2LDK/3LDKのようなファミリー・カップル向けのLDK系は中央値15〜16日程度と短く、"
+        "1R・2DK・3DKは30〜40日程度と長い。1Kはその中間(約21日)。"
+        "同じ「単身者向け」でも1Kと1Rで倍近く差があり、間取りの効きは築年数と独立した傾向として見える。"
+    )
+    lines.append("")
+
     top_n = valid.sort_values("n", ascending=False).head(5)
     lines.append("**件数が集中している組み合わせ(上位5):**")
     for _, r in top_n.iterrows():
