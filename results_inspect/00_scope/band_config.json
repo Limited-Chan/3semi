@@ -1,0 +1,22 @@
+{
+  "duration": {
+    "step": 30.0,
+    "bins_per_figure": 12,
+    "unit": "days"
+  },
+  "rent": {
+    "step": 20000.0,
+    "bins_per_figure": 10,
+    "unit": "yen"
+  },
+  "area": {
+    "step": 10.0,
+    "bins_per_figure": 10,
+    "unit": "sqm"
+  },
+  "age": {
+    "step": 5.0,
+    "bins_per_figure": 10,
+    "unit": "years"
+  }
+}

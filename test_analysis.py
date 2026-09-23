@@ -1,11 +1,14 @@
 import unittest
+import argparse
+import tempfile
+from pathlib import Path
 import numpy as np
 import pandas as pd
 
 from analyze import (
     prepare, exact_stats, selected_stat_value, apply_scope,
     parse_years, parse_types, group_statistics,
-    apply_equal_width_bands, normalize_band_config, build_band_schema, apply_band_schema,
+    apply_equal_width_bands, normalize_band_config, build_band_schema, apply_band_schema, extract,
 )
 
 
@@ -26,6 +29,25 @@ def row(**kw):
 
 
 class ScientificCorrectness(unittest.TestCase):
+    def test_extract_streams_only_requested_city(self):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            source = td / "sample.tsv"
+            output = td / "kokubunji.csv.gz"
+            pd.DataFrame([
+                {**row(id="a"), "addr1_1_name": "東京都", "addr1_2_name": "国分寺市"},
+                {**row(id="b"), "addr1_1_name": "東京都", "addr1_2_name": "小金井市"},
+            ]).to_csv(source, sep="\t", index=False, encoding="utf-8-sig")
+            args = argparse.Namespace(
+                input=str(source), output=str(output), prefecture="東京都", city="国分寺市",
+                encoding="utf-8-sig", chunk_size=1,
+            )
+            extract(args)
+            got = pd.read_csv(output, dtype="string", keep_default_na=False)
+            self.assertEqual(got["id"].tolist(), ["a"])
+            self.assertEqual(got["source_row"].tolist(), ["2"])
+            self.assertTrue(Path(str(output) + ".json").exists())
+
     def test_duration_zero_leap_and_invalid(self):
         d = prepare(pd.DataFrame([
             row(pub_start_date="2020-02-28", pub_end_date="2020-03-01"),

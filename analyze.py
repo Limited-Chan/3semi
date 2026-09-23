@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-VERSION = "2.3.0"
+VERSION = "2.3.1"
 
 # Only fields used for the planned analysis or for transparent data-quality audits.
 SOURCE_COLUMNS = [
@@ -171,6 +171,85 @@ def band_config_from_args(args) -> dict:
         "area": {"step": args.area_step_sqm, "bins_per_figure": args.area_bins_per_figure},
         "age": {"step": args.age_step_years, "bins_per_figure": args.age_bins_per_figure},
     })
+
+def extract(args) -> None:
+    """Stream the nationwide TSV and keep only the requested prefecture/city.
+
+    Extraction performs no deduplication, year filtering, property-type filtering,
+    or statistical grouping. Those decisions belong to the later analysis stages.
+    """
+    source = Path(args.input).expanduser().resolve()
+    out = Path(args.output)
+    if not source.exists():
+        raise FileNotFoundError(f"Input file not found: {source}")
+    if source.is_dir():
+        raise ValueError(f"--input must be a TSV file, not a directory: {source}")
+    if out.exists():
+        raise ValueError(f"Output already exists: {out}. Choose a new name or remove the old output deliberately.")
+
+    header = pd.read_csv(source, sep="\t", encoding=args.encoding, nrows=0).columns
+    missing = REQUIRED_EXTRACT_COLUMNS - set(header)
+    if missing:
+        raise ValueError(f"Missing required columns: {sorted(missing)}")
+
+    columns = [c for c in SOURCE_COLUMNS if c in header]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    temporary = out.with_name(out.name + ".partial")
+    rows_seen = 0
+    kept = 0
+
+    try:
+        with gzip.open(temporary, "wt", encoding="utf-8", newline="") as handle:
+            first = True
+            for chunk in pd.read_csv(
+                source,
+                sep="\t",
+                encoding=args.encoding,
+                dtype="string",
+                usecols=columns,
+                chunksize=args.chunk_size,
+                keep_default_na=False,
+                on_bad_lines="error",
+            ):
+                chunk["source_row"] = np.arange(rows_seen + 2, rows_seen + len(chunk) + 2)
+                rows_seen += len(chunk)
+                mask = (
+                    normalize_text(chunk["addr1_1_name"]).eq(args.prefecture)
+                    & normalize_text(chunk["addr1_2_name"]).eq(args.city)
+                )
+                selected = chunk.loc[mask]
+                kept += len(selected)
+                if len(selected):
+                    selected.to_csv(handle, index=False, header=first)
+                    first = False
+                print(f"Read {rows_seen:,} rows; selected {kept:,}", flush=True)
+
+            if first:
+                pd.DataFrame(columns=columns + ["source_row"]).to_csv(handle, index=False)
+
+        temporary.replace(out)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+
+    meta = {
+        "version": VERSION,
+        "source_name": source.name,
+        "source_bytes": source.stat().st_size,
+        "source_modified_utc": datetime.fromtimestamp(source.stat().st_mtime, timezone.utc).isoformat(),
+        "extracted_utc": datetime.now(timezone.utc).isoformat(),
+        "encoding": args.encoding,
+        "prefecture": args.prefecture,
+        "city": args.city,
+        "rows_read": rows_seen,
+        "rows_selected": kept,
+        "columns": columns,
+        "missing_optional_columns": sorted(set(SOURCE_COLUMNS) - set(columns)),
+        "note": "No deduplication, year filter, property-type filter, or binning is applied during extraction.",
+    }
+    save_json(Path(str(out) + ".json"), meta)
+    print(f"Saved {out}")
+
 
 def prepare(raw: pd.DataFrame) -> pd.DataFrame:
     d = raw.copy()
