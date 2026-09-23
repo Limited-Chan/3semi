@@ -1,0 +1,10 @@
+﻿flag,regional_n,analysis_scope_n
+rent_missing_or_unparseable,0,0
+rent_nonpositive,0,0
+area_missing_or_unparseable,31,27
+area_nonpositive,0,0
+age_build_after_listing,916,828
+age_missing_or_unparseable,31,27
+layout_invalid,102,94
+missing_id,0,0
+repeated_id,0,0
