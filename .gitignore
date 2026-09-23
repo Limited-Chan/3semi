@@ -1,4 +1,4 @@
-.venv/
+﻿.venv/
 venv/
 __pycache__/
 *.py[cod]
@@ -15,7 +15,7 @@ raw/
 
 # Generated analysis outputs
 results/
-results_*/
+/results_*/
 v23_*/
 *.partial
 *.tmp
