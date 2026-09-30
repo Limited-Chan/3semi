@@ -17,13 +17,18 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 (side-effect: 3D projection)
 from scipy import stats
 
-plt.rcParams["font.family"] = "Meiryo"
+# Windows(Meiryo)・Mac(Hiragino Sans)のどちらでも文字化けしないよう、
+# 実機にあるフォントを優先順位で探す。
+_JP_FONT_CANDIDATES = ["Meiryo", "Hiragino Sans", "Yu Gothic", "Noto Sans CJK JP", "MS Gothic"]
+_available = {f.name for f in fm.fontManager.ttflist}
+plt.rcParams["font.family"] = next((f for f in _JP_FONT_CANDIDATES if f in _available), "sans-serif")
 plt.rcParams["axes.unicode_minus"] = False
 
 HERE = Path(__file__).resolve().parent
@@ -296,6 +301,22 @@ def step4_visualizations(d: pd.DataFrame, cross: pd.DataFrame, edges: np.ndarray
     fig.savefig(OUT_DIR / "02_scatter_age_vs_duration_by_layout.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
+    # --- 4b'. same scatter, restricted to 1K / 1LDK / 2LDK only ---
+    focus = ["1K", "1LDK", "2LDK"]
+    fig, ax = plt.subplots(figsize=(9, 6))
+    points_focus = d[d["layout"].isin(focus) & d["age"].notna() & d["age"].lt(AGE_DISPLAY_MAX)]
+    for i, layout in enumerate(focus):
+        sub = points_focus[points_focus["layout"] == layout]
+        ax.scatter(sub["age"], sub["duration"], s=10, alpha=0.4,
+                   color=cmap(i % 10), label=f"{layout} (n={len(sub):,})")
+    ax.set_xlabel("築年数(年)")
+    ax.set_ylabel("掲載期間(日)")
+    ax.set_title(f"築年数 × 掲載期間(1K・1LDK・2LDKのみ, 1点=1物件, n={len(points_focus):,})")
+    ax.legend(fontsize=9, markerscale=2)
+    fig.tight_layout()
+    fig.savefig(OUT_DIR / "02b_scatter_age_vs_duration_1K_1LDK_2LDK.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
     # --- 4c. bar + line charts, consistent bin width ---
     fig, axes = plt.subplots(1, 2, figsize=(15, 5.5))
     x = np.arange(len(display_labels))
@@ -436,7 +457,8 @@ def write_report(d: pd.DataFrame, cross: pd.DataFrame, best_a: str, best_b: str)
     lines.append("")
     lines.append("## 4. グラフ")
     lines.append("- `output/01_3d_bar_age_layout_duration.png`: 3次元棒グラフ\n"
-                 "- `output/02_scatter_age_vs_duration_by_layout.png`: 間取りで色分けした散布図\n"
+                 "- `output/02_scatter_age_vs_duration_by_layout.png`: 間取りで色分けした散布図(上位8間取り)\n"
+                 "- `output/02b_scatter_age_vs_duration_1K_1LDK_2LDK.png`: 同散布図(1K・1LDK・2LDKのみに絞ったもの)\n"
                  "- `output/03_bar_line_age_by_layout.png`: 区間幅5年で統一した棒・折れ線グラフ\n"
                  "- `output/04_forecast_style_range.png`: 天気予報スタイルの幅表示(Q1〜Q3 + 中央値)")
     lines.append("")
@@ -444,9 +466,11 @@ def write_report(d: pd.DataFrame, cross: pd.DataFrame, best_a: str, best_b: str)
     lines.extend(step5_narrative(cross))
     lines.append("")
     lines.append("## 6. 幅を持った見せ方について")
+    pair_r2 = pd.read_csv(TABLE_DIR / "03_pair_explanatory_power.csv")["R2(交互作用なし)"]
     lines.append(
-        "全組み合わせのR^2は0.03〜0.05程度(手順2参照)と低く、築年数・間取りだけでは掲載期間の"
-        "大半のばらつきを説明できない。したがって「この物件は◯日」という一点予測は避け、"
+        f"全組み合わせのR^2は{pair_r2.min():.3f}〜{pair_r2.max():.3f}程度(手順2参照)と低く、"
+        "築年数・間取りだけでは掲載期間の大半のばらつきを説明できない。"
+        "したがって「この物件は◯日」という一点予測は避け、"
         "`output/04_forecast_style_range.png`のように**中央値と Q1〜Q3 の範囲**を併記する形を採用した。"
         "件数(n)が少ないセルは範囲が不安定なため、グラフ・考察ともに n>=5〜30 の閾値を明記している。"
     )

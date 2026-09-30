@@ -13,7 +13,8 @@
 
 ## 4. グラフ
 - `output/01_3d_bar_age_layout_duration.png`: 3次元棒グラフ
-- `output/02_scatter_age_vs_duration_by_layout.png`: 間取りで色分けした散布図
+- `output/02_scatter_age_vs_duration_by_layout.png`: 間取りで色分けした散布図(上位8間取り)
+- `output/02b_scatter_age_vs_duration_1K_1LDK_2LDK.png`: 同散布図(1K・1LDK・2LDKのみに絞ったもの)
 - `output/03_bar_line_age_by_layout.png`: 区間幅5年で統一した棒・折れ線グラフ
 - `output/04_forecast_style_range.png`: 天気予報スタイルの幅表示(Q1〜Q3 + 中央値)
 
@@ -54,4 +55,4 @@
 - 築年数40-45年 × 2K: 中央値60日(n=36, よくある範囲 12〜170日)
 
 ## 6. 幅を持った見せ方について
-全組み合わせのR^2は0.03〜0.05程度(手順2参照)と低く、築年数・間取りだけでは掲載期間の大半のばらつきを説明できない。したがって「この物件は◯日」という一点予測は避け、`output/04_forecast_style_range.png`のように**中央値と Q1〜Q3 の範囲**を併記する形を採用した。件数(n)が少ないセルは範囲が不安定なため、グラフ・考察ともに n>=5〜30 の閾値を明記している。
+全組み合わせのR^2は0.008〜0.071程度(手順2参照)と低く、築年数・間取りだけでは掲載期間の大半のばらつきを説明できない。したがって「この物件は◯日」という一点予測は避け、`output/04_forecast_style_range.png`のように**中央値と Q1〜Q3 の範囲**を併記する形を採用した。件数(n)が少ないセルは範囲が不安定なため、グラフ・考察ともに n>=5〜30 の閾値を明記している。
