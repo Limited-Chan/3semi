@@ -23,7 +23,7 @@ import pandas as pd
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 (side-effect: 3D projection)
 from scipy import stats
 
-plt.rcParams["font.family"] = "Hiragino Sans"
+plt.rcParams["font.family"] = "Meiryo"
 plt.rcParams["axes.unicode_minus"] = False
 
 HERE = Path(__file__).resolve().parent
@@ -86,17 +86,36 @@ def prepare(raw: pd.DataFrame) -> pd.DataFrame:
     layout[layout_ok] = rooms[layout_ok].astype(int).astype(str) + kind[layout_ok]
 
     d = pd.DataFrame({
-        "id": raw["id"], "duration": duration, "age": age, "rent": rent,
-        "area": area, "walk": walk, "layout": layout,
+        "id": raw["id"],
+        "start_year": start.dt.year,
+        "duration": duration,
+        "age": age,
+        "rent": rent,
+        "area": area,
+        "walk": walk,
+        "layout": layout,
     })
+
     before = len(d)
-    d = d[duration.notna() & duration.ge(0)].reset_index(drop=True)
-    dropped_invalid_duration = before - len(d)
-    dup = d["id"].duplicated(keep="first")
-    d = d[~dup].reset_index(drop=True)
-    print(f"[準備] 国分寺市 {before:,}件 → 掲載期間が有効な{len(d) + dup.sum():,}件"
-          f"(不正な日付を{dropped_invalid_duration:,}件除外)→ 重複ID{int(dup.sum()):,}件を除外 → "
-          f"分析対象 {len(d):,}件")
+
+    # 掲載開始日・終了日が有効で、掲載期間が0日以上のレコードを使用
+    d = d[d["duration"].notna() & d["duration"].ge(0)].copy()
+    after_duration = len(d)
+
+    # Ohori側と同じ2020〜2023年に統一
+    d = d[d["start_year"].isin([2020, 2021, 2022, 2023])].copy()
+    after_year = len(d)
+
+    # Ohori側の duplicates=keep と揃えるため重複IDは削除しない
+    d = d.drop(columns=["start_year"]).reset_index(drop=True)
+
+    print(
+        f"[準備] 国分寺市 {before:,}件"
+        f" → 掲載期間有効 {after_duration:,}件"
+        f" → 2020〜2023年 {after_year:,}件"
+        " → 重複IDは保持"
+    )
+
     return d
 
 
@@ -249,15 +268,15 @@ def step4_visualizations(d: pd.DataFrame, cross: pd.DataFrame, edges: np.ndarray
     for _, row in view.iterrows():
         xs.append(x_idx[row["age_band"]])
         ys.append(y_idx[row["layout"]])
-        zs.append(row["mean"])
+        zs.append(row["median"])
         colors.append(cmap(y_idx[row["layout"]] % 10))
     ax.bar3d(xs, ys, np.zeros(len(xs)), 0.6, 0.6, zs, color=colors, shade=True, alpha=0.85)
     ax.set_xticks(np.arange(len(display_labels)) + 0.3)
     ax.set_xticklabels(display_labels, rotation=30, ha="right", fontsize=7)
     ax.set_yticks(np.arange(len(TOP_LAYOUTS)) + 0.3)
     ax.set_yticklabels(TOP_LAYOUTS, fontsize=8)
-    ax.set_zlabel("平均掲載期間(日)")
-    ax.set_title("築年数区間 × 間取り × 平均掲載期間(n>=5のセルのみ表示)")
+    ax.set_zlabel("掲載期間中央値(日)")
+    ax.set_title("築年数区間 × 間取り × 掲載期間中央値(n>=5のセルのみ表示)")
     fig.tight_layout()
     fig.savefig(OUT_DIR / "01_3d_bar_age_layout_duration.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
@@ -283,16 +302,16 @@ def step4_visualizations(d: pd.DataFrame, cross: pd.DataFrame, edges: np.ndarray
     width = 0.8 / len(TOP_LAYOUTS)
     for i, layout in enumerate(TOP_LAYOUTS):
         sub = view[view["layout"] == layout].set_index("age_band").reindex(display_labels)
-        axes[0].bar(x + i * width, sub["mean"].to_numpy(dtype=float), width=width, color=cmap(i % 10), label=layout)
-        axes[1].plot(x, sub["mean"].to_numpy(dtype=float), marker="o", color=cmap(i % 10), label=layout)
+        axes[0].bar(x + i * width, sub["median"].to_numpy(dtype=float), width=width, color=cmap(i % 10), label=layout)
+        axes[1].plot(x, sub["median"].to_numpy(dtype=float), marker="o", color=cmap(i % 10), label=layout)
     axes[0].set_xticks(x + width * len(TOP_LAYOUTS) / 2)
     axes[0].set_xticklabels(display_labels, rotation=35, ha="right", fontsize=8)
-    axes[0].set_ylabel("平均掲載期間(日)")
+    axes[0].set_ylabel("掲載期間中央値(日)")
     axes[0].set_title("棒グラフ(区間幅は5年で統一)")
     axes[0].legend(fontsize=7, ncol=2)
     axes[1].set_xticks(x)
     axes[1].set_xticklabels(display_labels, rotation=35, ha="right", fontsize=8)
-    axes[1].set_ylabel("平均掲載期間(日)")
+    axes[1].set_ylabel("掲載期間中央値(日)")
     axes[1].set_title("折れ線グラフ(データが無い区間は線を途切れさせる)")
     axes[1].legend(fontsize=7, ncol=2)
     fig.tight_layout()
