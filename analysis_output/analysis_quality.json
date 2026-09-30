@@ -1,0 +1,30 @@
+{
+  "rows_read": 9287873,
+  "valid_completed_listing_rows": 9287873,
+  "missing_pub_start_date": 0,
+  "missing_pub_end_date": 0,
+  "negative_duration_rows": 0,
+  "duration_over_limit_rows": 0,
+  "file": "C:\\Users\\banan\\Downloads\\bukken_rent_v1.0.1.tsv\\bukken_rent_v1.0.1.tsv",
+  "encoding": "utf-8-sig",
+  "analyzed_columns": [
+    "id",
+    "pub_start_date",
+    "pub_end_date",
+    "bukken_type",
+    "addr1_1_name",
+    "addr1_2_name",
+    "addr2_name",
+    "rosen1_name",
+    "eki1_name",
+    "walk_distance1",
+    "money_room",
+    "house_area",
+    "kenchiku_date",
+    "madori_kind_all_label",
+    "madori_code"
+  ],
+  "duration_histogram_cap_days": 365,
+  "walk_distance_interpretation": "meters",
+  "meters_per_minute": 80.0
+}

@@ -1,0 +1,2 @@
+﻿scope,count,mean_days,p25_days_approx,median_days_approx,p75_days_approx,ended_within_7d_rate,ended_within_14d_rate,ended_within_30d_rate
+ALL,9287873,63.30638123497167,7,25,62,0.266180426885682,0.38532342119665075,0.5590897937557932
