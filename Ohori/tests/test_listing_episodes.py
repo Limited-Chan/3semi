@@ -3,7 +3,7 @@ import unittest
 
 import pandas as pd
 
-from src.listing_episodes import build_episodes
+from src.listing_episodes import build_episodes, build_episodes_fast
 
 
 def make(records):
@@ -64,6 +64,15 @@ class ListingEpisodesTest(unittest.TestCase):
         ep, _ = build_episodes(d, max_gap_days=1)
         self.assertEqual(len(ep), 2)
         self.assertEqual(int((ep["source_rows"] == 2).sum()), 1)
+
+    def test_fast_builder_matches_original(self):
+        cols = ["first_source_id", "start_date", "end_date", "source_rows"]
+        for gap in (0, 1, 7, 14):
+            slow, _ = build_episodes(self.records(), max_gap_days=gap)
+            fast = build_episodes_fast(self.records(), max_gap_days=gap)
+            a = slow[cols].sort_values(cols).reset_index(drop=True)
+            b = fast[cols].sort_values(cols).reset_index(drop=True)
+            pd.testing.assert_frame_equal(a, b, check_dtype=False)
 
     def test_area_tolerance(self):
         small = make([

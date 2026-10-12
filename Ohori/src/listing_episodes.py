@@ -172,3 +172,52 @@ def build_episodes(
     episodes = pd.DataFrame(entries).reset_index(drop=True)
     episodes = episodes.drop(columns=["source_row", "_group_key", "has_unit_key"], errors="ignore")
     return episodes, pd.DataFrame(audit_rows)
+
+
+def build_episodes_fast(
+    data: pd.DataFrame,
+    max_gap_days: int = 1,
+    area_tolerance: float = AREA_TOLERANCE_SQM,
+) -> pd.DataFrame:
+    """build_episodes と同じ統合ルールを、ベクトル演算で高速に行う(エピソード表だけを返す)。
+
+    数十万件の掲載でも数秒で終わる。結果は build_episodes と同じ(テストで照合)。
+    """
+    if max_gap_days < 0:
+        raise ValueError("max_gap_days は0以上にしてください")
+    d = prepare_room_keys(data)
+    d = d.loc[
+        d["start_date"].notna() & d["end_date"].notna() & (d["end_date"] >= d["start_date"])
+    ].copy()
+    d["_group_key"] = np.where(
+        d["has_unit_key"], "unit:" + d["unit_key"].fillna(""), "unknown:" + d["source_row"].astype(str)
+    )
+    d = d.sort_values(["_group_key", "start_date", "end_date", "source_row"]).reset_index(drop=True)
+    by_group = d.groupby("_group_key", sort=False)
+    prev_end = by_group["end_date"].cummax().groupby(d["_group_key"], sort=False).shift(1)
+    new_segment = prev_end.isna() | ((d["start_date"] - prev_end) > pd.Timedelta(days=max_gap_days))
+    d["_segment"] = new_segment.cumsum()
+    seg = d.groupby("_segment")
+    size = seg["source_row"].transform("size")
+    layout_kinds = seg["layout"].transform("nunique") if "layout" in d.columns else 0
+    area = (pd.to_numeric(d["area"], errors="coerce") if "area" in d.columns else pd.Series(np.nan, index=d.index)).astype(float)
+    area_range = area.groupby(d["_segment"]).transform("max") - area.groupby(d["_segment"]).transform("min")
+    blocked = (d["has_unit_key"] & (size > 1) & ((layout_kinds > 1) | (area_range > area_tolerance))).fillna(False).astype(bool)
+    d["_episode"] = np.where(blocked | ~d["has_unit_key"], -(np.arange(len(d)) + 1), d["_segment"])
+    ep = d.groupby("_episode")
+    first = d.loc[~d.duplicated("_episode", keep="first")].copy()
+    first["first_source_id"] = first["id"] if "id" in first else pd.NA
+    start = ep["start_date"].min()
+    end = ep["end_date"].max()
+    first["start_date"] = first["_episode"].map(start)
+    first["end_date"] = first["_episode"].map(end)
+    first["duration"] = (first["end_date"] - first["start_date"]).dt.days.astype(float)
+    first["start_year"] = first["start_date"].dt.year.astype(int)
+    first["start_month"] = first["start_date"].dt.month.astype(int)
+    first["source_rows"] = first["_episode"].map(ep.size())
+    first["episode_status"] = np.where(
+        ~first["has_unit_key"], "missing_id", np.where(blocked.loc[first.index], "conflicting_metadata", "identified_unit")
+    )
+    first["unit_key"] = first["unit_key"].where(first["has_unit_key"], pd.NA)
+    first["id"] = [f"episode_{i:07d}" for i in range(1, len(first) + 1)]
+    return first.drop(columns=["source_row", "_group_key", "has_unit_key", "_segment", "_episode"]).reset_index(drop=True)
