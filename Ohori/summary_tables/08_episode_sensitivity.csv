@@ -1,0 +1,5 @@
+﻿max_gap_days,original_rows_all_years,unit_id_coverage,units_with_repeated_listings,overlapping_or_adjacent_segments,segments_merged,segments_blocked_by_conflict,listings_in_blocked_segments,blocked_by_layout,blocked_by_area_only,merged_segments_with_station_difference,episodes_all_years,episodes_starting_2020_2023,merged_original_rows
+0,24608,1.0,4680,4589,3814,775,6390,599,176,178,16941,15426,7667
+1,24608,1.0,4680,4664,3885,779,6415,603,176,178,16781,15276,7827
+7,24608,1.0,4680,4817,4029,788,6461,611,177,180,16316,14848,8292
+14,24608,1.0,4680,4798,4004,794,6497,616,178,182,16133,14709,8475
