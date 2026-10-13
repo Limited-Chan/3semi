@@ -150,8 +150,7 @@ def fig_e() -> None:
         bars = ax.bar(x + (i - 0.5) * 0.36, v, 0.36, color=color, label=pop if pop != "国分寺市" else "国分寺市のみ")
         for b, val in zip(bars, v):
             ax.text(b.get_x() + b.get_width() / 2, val, f"{val:.3f}", ha="center", va="bottom", fontsize=9)
-    ax.axhline(0.5, color=GRAY, ls="--")
-    ax.text(len(order) - 0.5, 0.489, "点線 0.5 = サイコロ(当てずっぽう)", color="#555555", ha="right", fontsize=10)
+    ax.axhline(0.5, color="#555555", ls="--", label="点線 0.5 = サイコロ(当てずっぽう)")
     ax.set_xticks(x, labels)
     ax.set_ylim(0.48, 0.70)
     ax.set_ylabel("候補内AUC(Model 2、7日以内)")
