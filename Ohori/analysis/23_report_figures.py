@@ -104,7 +104,7 @@ def fig_c() -> None:
     ax[0].text(12, ax[0].get_ylim()[1] * 0.97, " 12%", color=INK, fontsize=10, va="top")
     ax[0].text(15, ax[0].get_ylim()[1] * 0.90, " 15%", color=GRAY, fontsize=10, va="top")
     ax[0].set_xlabel("境界(7日以内の予測確率が何%以上を「高」にするか)")
-    ax[0].set_ylabel("ラベルの正味の効き目(100組あたり、当たり−外れ)")
+    ax[0].set_ylabel("ラベルの効き目(100組あたり。大きいほど役に立つ)")
     ax[0].set_title("同じ間取りの2件を比べたときの効き目:\n10〜12%で最大、15%を超えると下がる", loc="left", fontsize=12, fontweight="bold")
     ax[0].legend(frameon=False)
     ax[0].grid(color="#e5e5e5")
@@ -116,7 +116,7 @@ def fig_c() -> None:
     ax[1].legend(frameon=False)
     ax[1].grid(color="#e5e5e5")
     finish(fig, "23c_boundary_choice.png", "図c 高・低の境界の選び方(7日以内)",
-           "左: 同じ日・同じ市・同じ間取りの物件2件で、高の方だけ終わった組−低の方だけ終わった組(帯は95%区間)。右: 2023年の全候補(近隣10市+国分寺市)。探索的。出典: summary_tables/20_*.csv、18_threshold_table.csv")
+           "左: 同じ間取りの2件を比べ、高の方だけ終わった組が、低の方だけ終わった組より、100組あたり何組多いか(帯は誤差の幅)。右: 2023年の全候補。探索的。出典: summary_tables/20_*.csv、18_threshold_table.csv")
 
 
 def fig_d() -> None:
