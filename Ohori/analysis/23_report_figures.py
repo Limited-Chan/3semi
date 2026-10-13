@@ -175,9 +175,35 @@ def fig_f() -> None:
            "同じ部屋の重なる・1日以内に連続する掲載を統合(間取りや面積が食い違うものは統合しない)。出典: summary_tables/21_counts.csv、08_episode_sensitivity.csv")
 
 
+def fig_g() -> None:
+    s = rd("21_duration_summary.csv")
+    pts = {0: 0.0}
+    for _, r in s.iterrows():
+        if "日後までに終了" in r["指標"]:
+            pts[int(r["指標"].split("日後")[0])] = float(r["値"])
+    days = sorted(pts)
+    y = [100 * pts[d] for d in days]
+    fig, ax = plt.subplots(figsize=(12, 5.8))
+    ax.fill_between(days, y, color=INK, alpha=0.08)
+    ax.plot(days, y, color=INK, lw=3)
+    for d in (7, 30, 90):
+        ax.plot(d, 100 * pts[d], "o", color=ACC, ms=11)
+        ax.annotate(f"{d}日目: {100 * pts[d]:.0f}%が終了", (d, 100 * pts[d]), xytext=(d + 6, 100 * pts[d] - (15 if d == 30 else 9)),
+                    fontsize=14, fontweight="bold", color=ACC)
+    ax.axhline(50, color=GRAY, ls="--", lw=1)
+    ax.text(178, 51.5, "半分(22日目で到達)", ha="right", color="#555555", fontsize=11)
+    ax.set_xlim(0, 180)
+    ax.set_ylim(0, 100)
+    ax.set_xlabel("掲載を始めてから何日目か")
+    ax.set_ylabel("掲載が終わった物件の割合(%)")
+    ax.grid(color="#e5e5e5")
+    finish(fig, "23g_ended_share_by_day.png", "図g 掲載を始めた直後ほど、どんどん終わる",
+           "国分寺市、2020〜2023年に掲載開始の22,332件(Kaplan–Meier法)。「終わった」=掲載が終了。成約とは限らない。出典: summary_tables/21_duration_summary.csv")
+
+
 def main() -> None:
     FIG.mkdir(parents=True, exist_ok=True)
-    for f in (fig_a, fig_b, fig_c, fig_d, fig_e, fig_f):
+    for f in (fig_a, fig_b, fig_c, fig_d, fig_e, fig_f, fig_g):
         f()
         print("ok", f.__name__)
 
