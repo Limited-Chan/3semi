@@ -201,9 +201,48 @@ def fig_g() -> None:
            "国分寺市、2020〜2023年に掲載開始の22,332件(Kaplan–Meier法)。「終わった」=掲載が終了。成約とは限らない。出典: summary_tables/21_duration_summary.csv")
 
 
+def _medians(prefix: str) -> pd.DataFrame:
+    g = rd("21_group_medians.csv")
+    return g[g["区分"].str.startswith(prefix)].reset_index(drop=True)
+
+
+def _bars(ax, labels, vals, color, title, ylabel=None, fs=13) -> None:
+    bars = ax.bar(labels, vals, color=color, width=0.65)
+    for b, v in zip(bars, vals):
+        ax.text(b.get_x() + b.get_width() / 2, v, f"{v:.0f}", ha="center", va="bottom", fontsize=fs, fontweight="bold")
+    ax.set_title(title, loc="left", fontsize=fs + 1, fontweight="bold")
+    ax.set_ylim(0, max(vals) * 1.18)
+    ax.tick_params(labelsize=fs - 1)
+    if ylabel:
+        ax.set_ylabel(ylabel, fontsize=fs - 1)
+    ax.grid(axis="y", color="#e5e5e5")
+    ax.set_axisbelow(True)
+
+
+def fig_h() -> None:
+    d = _medians("家賃 ")
+    labels = ["5万円\n以下", "5〜7\n万円", "7〜9\n万円", "9〜11\n万円", "11万円\n超"]
+    fig, ax = plt.subplots(figsize=(8, 6.2))
+    _bars(ax, labels, d["掲載日数の中央値"].to_numpy(), INK, "家賃が安いほど、長く載る", "掲載日数の中央値(日)")
+    finish(fig, "23h_rent_median.png", "図h 家賃の帯ごとの、掲載日数の中央値",
+           "国分寺市、2020〜2023年開始の22,332件。出典: summary_tables/21_group_medians.csv")
+
+
+def fig_i() -> None:
+    lay = _medians("間取り ")
+    lay["name"] = lay["区分"].str.replace("間取り ", "", regex=False)
+    lay = lay.set_index("name").loc[["1K", "1R", "1LDK", "2LDK"]]
+    mon = _medians("掲載開始月 ")
+    fig, ax = plt.subplots(2, 1, figsize=(8, 7.4))
+    _bars(ax[0], list(lay.index), lay["掲載日数の中央値"].to_numpy(), INK, "間取り: 1Rが長く、1LDKは短め", "中央値(日)")
+    _bars(ax[1], [f"{i}月" for i in range(1, 13)], mon["掲載日数の中央値"].to_numpy(), ACC, "掲載を始めた月: 1月は短く、夏は長め", "中央値(日)", fs=12)
+    finish(fig, "23i_layout_month_median.png", "図i 間取りと掲載開始月ごとの、掲載日数の中央値",
+           "国分寺市、2020〜2023年開始の22,332件。出典: summary_tables/21_group_medians.csv")
+
+
 def main() -> None:
     FIG.mkdir(parents=True, exist_ok=True)
-    for f in (fig_a, fig_b, fig_c, fig_d, fig_e, fig_f, fig_g):
+    for f in (fig_a, fig_b, fig_c, fig_d, fig_e, fig_f, fig_g, fig_h, fig_i):
         f()
         print("ok", f.__name__)
 
