@@ -22,7 +22,7 @@ AUC = HERE / "summary_tables" / "17_auc_by_model.csv"
 FIG = HERE / "figures" / "22_horizon_choice.png"
 TABLE = HERE / "summary_tables" / "22_horizon_choice.csv"
 HORIZONS = [7, 14, 30]
-POPS = [("近隣10市+国分寺市", "#1B2A41"), ("国分寺市のみ", "#C2410C")]
+POPS = [("近隣10市+国分寺市", "#4A1D3A"), ("国分寺市のみ", "#C2185B")]
 plt.rcParams["font.family"] = ["Hiragino Sans", "Hiragino Maru Gothic Pro", "sans-serif"]
 
 

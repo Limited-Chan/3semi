@@ -19,7 +19,7 @@ import pandas as pd
 HERE = Path(__file__).resolve().parents[1]
 T = HERE / "summary_tables"
 FIG = HERE / "figures"
-INK, ACC, BLUE, GRAY = "#1B2A41", "#C2410C", "#1D4ED8", "#8A93A3"
+INK, ACC, BLUE, GRAY = "#4A1D3A", "#C2185B", "#3949AB", "#A58A9A"
 plt.rcParams["font.family"] = ["Hiragino Sans", "sans-serif"]
 plt.rcParams["axes.spines.top"] = False
 plt.rcParams["axes.spines.right"] = False
