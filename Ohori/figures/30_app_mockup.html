@@ -1,0 +1,298 @@
+<title>すぐ埋まる？ナビ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap">
+<style>
+/* Layout: 上に検索条件(①)、下の左に検索結果と高・低(②)、右に選んだ物件の実績(③)。番号は使う順番。狭い画面では縦に積む。 */
+:root {
+  --bg: #f5f1f3;
+  --surface: #ffffff;
+  --line: #e8dbe2;
+  --ink: #2b1623;
+  --muted: #76606c;
+  --hi: #c2185b;
+  --hi-soft: #fde7ef;
+  --lo: #3949ab;
+  --lo-soft: #e8eaf7;
+  --band: #4a1d3a;
+  --band-ink: #fdf2f6;
+  --step: #4a1d3a;
+  --font-display: 'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+  --font-body: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1c1117; --surface: #281a22; --line: #432e39; --ink: #f7eaf0; --muted: #c3a8b6;
+  --hi: #ff8fb8; --hi-soft: #47202f; --lo: #a3abff; --lo-soft: #252948; --band: #120a0f; --band-ink: #fdf2f6; --step: #ff9ec4;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1c1117; --surface: #281a22; --line: #432e39; --ink: #f7eaf0; --muted: #c3a8b6;
+  --hi: #ff8fb8; --hi-soft: #47202f; --lo: #a3abff; --lo-soft: #252948; --band: #120a0f; --band-ink: #fdf2f6; --step: #ff9ec4;
+  color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.num { font-variant-numeric: tabular-nums; }
+button, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--hi); outline-offset: 2px; }
+
+header.top { background: var(--band); color: var(--band-ink);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top-in { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.logo { font-family: var(--font-display); font-weight: 900; font-size: 22px; }
+.logo span { color: #ff9ec4; }
+.mock { margin-left: auto; font-size: 13px; font-weight: 700; letter-spacing: .08em; border: 1px solid rgba(253,242,246,.55); border-radius: 999px; padding: 2px 12px; }
+
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 14px 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--step); color: var(--surface);
+  font-family: var(--font-display); font-weight: 900; font-size: 15px; flex: none; }
+.step-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 900; font-size: 18px; margin: 0; }
+
+/* ① 検索条件 */
+form.search { padding: 12px 16px; display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
+.field { display: flex; align-items: center; gap: 8px; }
+.field label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.field select { font-size: 16px; font-weight: 700; padding: 6px 30px 6px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); }
+.search .go { margin-left: auto; font-weight: 700; padding: 8px 22px; border-radius: 10px; border: 2px solid var(--ink); background: var(--ink); color: var(--surface); cursor: pointer; }
+
+main { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 14px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } .search .go { margin-left: 0; } }
+
+/* ② 検索結果 */
+.list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.list-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.count { font-size: 14px; color: var(--muted); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { font-size: 14px; font-weight: 700; padding: 3px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.tab[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+ul.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.card { width: 100%; text-align: left; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 7px 10px;
+  display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.card:hover { border-color: var(--muted); }
+.card[aria-current="true"] { border-color: var(--ink); }
+.tile { flex: none; width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 900; font-size: 26px; }
+.tile.hi { background: var(--hi); color: #fff; }
+.tile.lo { background: var(--lo-soft); color: var(--lo); }
+.card .txt { min-width: 0; display: flex; flex-direction: column; }
+.card .spec { font-weight: 900; font-size: 18px; line-height: 1.3; }
+.card .meta { font-size: 13px; color: var(--muted); }
+.empty { padding: 24px 8px; text-align: center; color: var(--muted); }
+
+/* ③ 詳細 */
+.detail { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.d-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.d-top .titles { min-width: 0; flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px; }
+.d-top h1 { font-family: var(--font-display); font-size: 26px; margin: 0; line-height: 1.25; }
+.d-top .sub { font-size: 14px; color: var(--muted); }
+.verdict { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 14px; }
+.verdict.hi { background: var(--hi-soft); }
+.verdict.lo { background: var(--lo-soft); }
+.verdict .tile { width: 58px; height: 58px; font-size: 32px; }
+.verdict p { margin: 0; font-weight: 700; font-size: 16px; line-height: 1.35; }
+.verdict p small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+
+.sec { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 12px; }
+.sec h3 { font-size: 16px; font-weight: 900; margin: 0; }
+.sec p { margin: 0; font-size: 13px; color: var(--muted); }
+.big2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 480px) { .big2 { grid-template-columns: minmax(0, 1fr); } }
+.big { border-radius: 14px; padding: 12px 16px; background: var(--bg); display: flex; flex-direction: column; gap: 2px; }
+.big .k { font-size: 14px; font-weight: 700; color: var(--muted); }
+.big .v { font-family: var(--font-display); font-weight: 900; font-size: 48px; line-height: 1.05; }
+.big .v small { font-size: 20px; margin-left: 2px; }
+.big .s { font-size: 13px; color: var(--muted); }
+
+.timeline svg { width: 100%; height: auto; display: block; }
+.timeline text { font-family: var(--font-body); font-size: 13px; fill: var(--muted); }
+.timeline .lab { font-weight: 700; fill: var(--ink); }
+.timeline .nowlab { font-weight: 700; fill: var(--hi); }
+
+.decide { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn { font-weight: 700; padding: 8px 20px; border-radius: 10px; border: 2px solid var(--ink); background: var(--ink); color: var(--surface); cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.decide p { margin: 0; font-size: 14px; font-weight: 700; flex: 1 1 200px; }
+.toast { font-size: 13px; color: var(--hi); font-weight: 700; width: 100%; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="logo">すぐ埋まる？<span>ナビ</span></div>
+    <div class="mock">画面イメージ</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <form class="panel search" id="search" aria-label="条件で探す">
+    <h2 class="step-title"><span class="step">1</span>条件で探す</h2>
+    <div class="field"><label for="q-area">エリア</label>
+      <select id="q-area"><option>国分寺市</option></select></div>
+    <div class="field"><label for="q-layout">間取り</label>
+      <select id="q-layout">
+        <option value="">指定なし</option><option>1R</option><option selected>1K</option><option>1LDK</option><option>2DK</option><option>2LDK</option>
+      </select></div>
+    <div class="field"><label for="q-rent">家賃</label>
+      <select id="q-rent">
+        <option value="4">4万円まで</option><option value="6">6万円まで</option><option value="8" selected>8万円まで</option>
+        <option value="10">10万円まで</option><option value="14">14万円まで</option><option value="99">指定なし</option>
+      </select></div>
+    <div class="field"><label for="q-age">築年数</label>
+      <select id="q-age">
+        <option value="99" selected>指定なし</option><option value="10">10年まで</option><option value="20">20年まで</option><option value="30">30年まで</option>
+      </select></div>
+    <button class="go" type="submit">検索</button>
+  </form>
+
+  <main>
+    <section class="panel list" aria-labelledby="list-title">
+      <div class="list-top">
+        <h2 class="step-title" id="list-title"><span class="step">2</span>結果に、高・低が付く</h2>
+        <span class="count num" id="count"></span>
+      </div>
+      <div class="tabs" role="group" aria-label="高・低で表示を切り替え">
+        <button class="tab" id="f-all" aria-pressed="true" data-f="all">高・低どちらも</button>
+        <button class="tab" id="f-hi" aria-pressed="false" data-f="hi">高だけ</button>
+        <button class="tab" id="f-lo" aria-pressed="false" data-f="lo">低だけ</button>
+      </div>
+      <ul class="cards" id="cards"></ul>
+    </section>
+
+    <section class="panel detail" id="detail" aria-live="polite"></section>
+  </main>
+</div>
+
+<script>
+// 実績の数字: summary_tables/24_same_condition_duration.csv(国分寺市、2020〜2023年に掲載開始、Kaplan–Meier法)。
+// g = 間取り・築年数帯(10年ごと)・家賃帯(2万円ごと)が同じ過去の物件。物件そのものと高・低のラベルは画面イメージ用の例。
+const LISTINGS = [
+  { id: 'k1', layout: '1K',   age: 15, rent: 6.5,  st: '国分寺駅 徒歩9分',    label: 'hi', g: { age: '10〜20年', rent: '6〜8',   n: 3000, q50: 5,  q75: 26,  r7: 0.189 } },
+  { id: 'k2', layout: '1K',   age: 7,  rent: 7.2,  st: '西国分寺駅 徒歩6分',  label: 'hi', g: { age: '10年未満', rent: '6〜8',   n: 1387, q50: 9,  q75: 27,  r7: 0.271 } },
+  { id: 'k3', layout: '1K',   age: 12, rent: 5.6,  st: '恋ヶ窪駅 徒歩7分',    label: 'lo', g: { age: '10〜20年', rent: '4〜6',   n: 596,  q50: 32, q75: 72,  r7: 0.131 } },
+  { id: 'k4', layout: '1K',   age: 22, rent: 6.9,  st: '国分寺駅 徒歩13分',   label: 'lo', g: { age: '20〜30年', rent: '6〜8',   n: 644,  q50: 31, q75: 65,  r7: 0.121 } },
+  { id: 'k5', layout: '1K',   age: 25, rent: 5.0,  st: '国分寺駅 徒歩15分',   label: 'lo', g: { age: '20〜30年', rent: '4〜6',   n: 1207, q50: 41, q75: 97,  r7: 0.115 } },
+  { id: 'k6', layout: '1K',   age: 35, rent: 5.4,  st: '西国分寺駅 徒歩10分', label: 'lo', g: { age: '30〜40年', rent: '4〜6',   n: 1003, q50: 49, q75: 113, r7: 0.096 } },
+  { id: 'r1', layout: '1R',   age: 8,  rent: 6.2,  st: '国分寺駅 徒歩5分',    label: 'hi', g: { age: '10年未満', rent: '6〜8',   n: 303,  q50: 15, q75: 53,  r7: 0.152 } },
+  { id: 'r2', layout: '1R',   age: 24, rent: 4.6,  st: '西国分寺駅 徒歩8分',  label: 'lo', g: { age: '20〜30年', rent: '4〜6',   n: 484,  q50: 44, q75: 91,  r7: 0.103 } },
+  { id: 'r3', layout: '1R',   age: 36, rent: 3.8,  st: '恋ヶ窪駅 徒歩5分',    label: 'lo', g: { age: '30〜40年', rent: '2〜4',   n: 295,  q50: 70, q75: 175, r7: 0.036 } },
+  { id: 'l1', layout: '1LDK', age: 6,  rent: 9.2,  st: '国分寺駅 徒歩12分',   label: 'hi', g: { age: '10年未満', rent: '8〜10',  n: 555,  q50: 13, q75: 32,  r7: 0.231 } },
+  { id: 'l2', layout: '1LDK', age: 3,  rent: 10.8, st: '国分寺駅 徒歩7分',    label: 'hi', g: { age: '10年未満', rent: '10〜12', n: 594,  q50: 13, q75: 31,  r7: 0.245 } },
+  { id: 'l3', layout: '1LDK', age: 14, rent: 9.5,  st: '恋ヶ窪駅 徒歩9分',    label: 'hi', g: { age: '10〜20年', rent: '8〜10',  n: 295,  q50: 20, q75: 50,  r7: 0.182 } },
+  { id: 'd1', layout: '2DK',  age: 34, rent: 6.8,  st: '西国分寺駅 徒歩11分', label: 'lo', g: { age: '30〜40年', rent: '6〜8',   n: 402,  q50: 47, q75: 93,  r7: 0.101 } },
+  { id: 'p1', layout: '2LDK', age: 4,  rent: 12.8, st: '恋ヶ窪駅 徒歩8分',    label: 'hi', g: { age: '10年未満', rent: '12〜14', n: 265,  q50: 9,  q75: 25,  r7: 0.295 } },
+  { id: 'p2', layout: '2LDK', age: 16, rent: 11.4, st: '国分寺駅 徒歩14分',   label: 'hi', g: { age: '10〜20年', rent: '10〜12', n: 121,  q50: 16, q75: 40,  r7: 0.186 } },
+];
+const ELAPSED = 12;
+let filter = 'all';
+let current = 'k1';
+
+const $ = (s) => document.querySelector(s);
+const yen = (v) => v.toFixed(1).replace(/\.0$/, '') + '万円';
+const spec = (x) => `${x.layout}・築${x.age}年・${yen(x.rent)}`;
+const L = { hi: '高', lo: '低' };
+
+function results() {
+  const lay = $('#q-layout').value, rent = +$('#q-rent').value, age = +$('#q-age').value;
+  return LISTINGS.filter((x) => (!lay || x.layout === lay) && x.rent <= rent && x.age <= age);
+}
+
+function render() {
+  const all = results();
+  const shown = all.filter((x) => filter === 'all' || x.label === filter);
+  if (!shown.some((x) => x.id === current)) current = shown.length ? shown[0].id : null;
+  const nh = all.filter((x) => x.label === 'hi').length;
+  $('#count').textContent = `${all.length}件(高${nh}・低${all.length - nh})`;
+  const ul = $('#cards');
+  ul.innerHTML = '';
+  if (!shown.length) {
+    ul.innerHTML = '<li class="empty">この条件の物件はありません。条件を変えてください。</li>';
+  }
+  shown.forEach((x) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<button class="card" id="card-${x.id}" aria-current="${x.id === current}">
+      <span class="tile ${x.label}" aria-label="終わりやすさ ${L[x.label]}">${L[x.label]}</span>
+      <span class="txt"><span class="spec">${spec(x)}</span><span class="meta">${x.st}・掲載${ELAPSED}日目</span></span></button>`;
+    li.firstElementChild.addEventListener('click', () => { current = x.id; render(); });
+    ul.appendChild(li);
+  });
+  renderDetail();
+}
+
+// 日数の線: 0〜90日。90日を超える値は端に置き、実際の日数を書く。
+function timeline(g) {
+  const W = 680, H = 118, P = 16, MAX = 90;
+  const x = (d) => P + (Math.min(d, MAX) / MAX) * (W - 2 * P);
+  const y = 48;
+  const ticks = [0, 30, 60, 90];
+  const q75lab = g.q75 > MAX ? `4分の3 ${g.q75}日 →` : `4分の3 ${g.q75}日`;
+  const q50x = x(g.q50), q75x = x(g.q75), nowx = x(ELAPSED);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="近い条件の過去の物件は、半分が${g.q50}日、4分の3が${g.q75}日で掲載が終了。いまは${ELAPSED}日目">
+    <rect x="${P}" y="${y - 7}" width="${W - 2 * P}" height="14" rx="7" fill="var(--line)"/>
+    <rect x="${P}" y="${y - 7}" width="${Math.max(q75x - P, 14)}" height="14" rx="7" fill="var(--muted)" fill-opacity=".35"/>
+    <rect x="${P}" y="${y - 7}" width="${Math.max(q50x - P, 14)}" height="14" rx="7" fill="var(--ink)"/>
+    <line x1="${nowx}" y1="${y - 24}" x2="${nowx}" y2="${y + 12}" stroke="var(--hi)" stroke-width="3"/>
+    <text class="nowlab" x="${nowx}" y="${y - 30}" text-anchor="middle">いま ${ELAPSED}日目</text>
+    <text class="lab" x="${Math.min(q50x, W - 140)}" y="${y + 30}" text-anchor="${q50x < 60 ? 'start' : 'middle'}">半分 ${g.q50}日</text>
+    <text x="${Math.min(q75x, W - P)}" y="${y + 30}" text-anchor="end">${q75lab}</text>
+    <line x1="${P}" y1="${H - 22}" x2="${W - P}" y2="${H - 22}" stroke="var(--line)"/>
+    ${ticks.map((t) => `<text x="${x(t)}" y="${H - 4}" text-anchor="${t === 0 ? 'start' : t === MAX ? 'end' : 'middle'}">${t}日</text>`).join('')}
+  </svg>`;
+}
+
+function renderDetail() {
+  const box = $('#detail');
+  const x = LISTINGS.find((v) => v.id === current);
+  if (!x) {
+    box.innerHTML = '<h2 class="step-title"><span class="step">3</span>物件を選ぶと、近い物件の実績が出る</h2><p class="note">左の一覧から物件を選んでください。</p>';
+    return;
+  }
+  const g = x.g;
+  const pct = Math.round(g.r7 * 100);
+  const hi = x.label === 'hi';
+  box.innerHTML = `
+    <h2 class="step-title"><span class="step">3</span>選んだ物件と、近い物件の実績</h2>
+    <div class="d-top">
+      <div class="titles">
+        <h1>${spec(x)}</h1>
+        <div class="sub">${x.st}・掲載から${ELAPSED}日目</div>
+      </div>
+      <div class="verdict ${x.label}">
+        <span class="tile ${x.label}">${L[x.label]}</span>
+        <p>${hi ? '7日以内に<br>終わりやすい' : '7日以内には<br>終わりにくい'}<small>条件から計算した目安</small></p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>間取り・築年数・家賃が近い、過去の物件は</h3>
+      <p class="num">${x.layout}・築${g.age}・家賃${g.rent}万円 の過去${g.n.toLocaleString()}件(国分寺市)</p>
+    </div>
+    <div class="big2">
+      <div class="big"><span class="k">半分が終わるまで</span><span class="v num">${g.q50}<small>日</small></span><span class="s">掲載を始めてから</span></div>
+      <div class="big"><span class="k">${ELAPSED}日目から、あと7日で終わった</span><span class="v num">${pct}<small>%</small></span><span class="s">100件中 約${pct}件</span></div>
+    </div>
+    <div class="timeline">${timeline(g)}</div>
+
+    <div class="decide">
+      <button class="btn" id="ask">問い合わせる</button>
+      <button class="btn ghost" id="keep">あとで見る</button>
+      <p>急ぐかどうかは、あなたが決める。</p>
+      <span class="toast" id="toast" hidden></span>
+    </div>
+    <p class="note">画面イメージ。物件と高・低は例。実績は国分寺市の実データ(2020〜2023年)。掲載終了=成約とは限らない。</p>`;
+  const t = $('#toast');
+  $('#ask').addEventListener('click', () => { t.textContent = '画面イメージのため、送信はされません'; t.hidden = false; });
+  $('#keep').addEventListener('click', () => { t.textContent = '「あとで見る」に追加しました(画面イメージ)'; t.hidden = false; });
+}
+
+$('#search').addEventListener('submit', (e) => { e.preventDefault(); render(); });
+['#q-layout', '#q-rent', '#q-age'].forEach((s) => $(s).addEventListener('change', render));
+document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => {
+  filter = b.dataset.f;
+  document.querySelectorAll('.tab').forEach((c) => c.setAttribute('aria-pressed', String(c === b)));
+  render();
+}));
+
+render();
+</script>
