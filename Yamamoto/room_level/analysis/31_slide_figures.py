@@ -93,6 +93,26 @@ def members(d: pd.DataFrame) -> list[np.ndarray]:
     return [order[a:b] for a, b in zip(bounds[:-1], bounds[1:])]
 
 
+# ---------- 図の共通部品(論文調: 色は1色を濃淡で。タイトルは画像に入れず、スライドの図の説明に書く) ----------
+DARK, MIDC, LIGHT = "#1F4E79", "#5B7C99", "#A9BCCF"
+
+
+def panel(a, label: str) -> None:
+    a.set_title(label, loc="left", fontsize=12)
+
+
+def dot_ci(a, x: float, v: float, lo: float | None, hi: float | None, marker: str = "o", color: str = DARK, label=None, vertical: bool = True) -> None:
+    if lo is not None:
+        (a.plot([x, x], [lo, hi], color=color, lw=1.4, marker="_", ms=8, mew=1.4, zorder=2) if vertical
+         else a.plot([lo, hi], [x, x], color=color, lw=1.4, marker="|", ms=8, mew=1.4, zorder=2))
+    (a.plot([x], [v], marker=marker, color=color, ms=7, ls="none", zorder=3, label=label) if vertical
+     else a.plot([v], [x], marker=marker, color=color, ms=7, ls="none", zorder=3, label=label))
+
+
+def boot_unit_idx(mem: list[np.ndarray], rng) -> np.ndarray:
+    return np.concatenate([mem[i] for i in rng.integers(0, len(mem), len(mem))])
+
+
 # ---------- 31a 掲載日数 ----------
 def fig_duration() -> None:
     d = load_prepared(ROOT / "data" / "prepared" / "kokubunji_raw.parquet")
@@ -118,34 +138,27 @@ def fig_duration() -> None:
     for t in [7, 14, 30, 90]:
         note("31a", f"{t}日後までに終了(KM)", 100 * ended(t))
 
-    fig, ax = new(1664, 520, 2)
+    fig, ax = new(1664, 480, 2)
     a = ax[0]
-    for i, v in enumerate(share.to_numpy()):
-        a.bar(i, v, 0.72, color=STEEL)
-        a.text(i, v + 0.8, f"{v:.0f}%", ha="center", fontsize=12)
+    a.bar(range(len(labs)), share.to_numpy(), 0.72, color=MIDC)
     a.set_xticks(range(len(labs)))
-    a.set_xticklabels(labs, fontsize=10.5)
-    a.set_xlabel("掲載日数(日)", fontsize=12)
-    a.set_ylabel("物件の割合(%)", fontsize=12)
-    a.set_ylim(0, 36)
-    a.set_title(f"掲載日数ごとの物件の割合({len(s):,}件)", loc="left", fontsize=12)
+    a.set_xticklabels(labs, fontsize=11)
+    a.set_xlabel("掲載日数(日)")
+    a.set_ylabel("物件の割合(%)")
+    a.set_ylim(0, 32)
+    panel(a, "(a)")
     b = ax[1]
     grid = np.arange(0, 181)
-    yv = [100 * ended(t) for t in grid]
-    b.fill_between(grid, yv, color=STEEL, alpha=0.12)
-    b.plot(grid, yv, color=INK, lw=3)
-    for t, dy in [(7, -9), (30, -12), (90, -10)]:
-        b.plot(t, 100 * ended(t), "o", color=INK, ms=6)
-        b.annotate(f"{t}日目 {100 * ended(t):.0f}%", (t, 100 * ended(t)), xytext=(t + 6, 100 * ended(t) + dy), fontsize=12, color=INK)
-    b.axhline(50, color=GRAY, ls="--", lw=1)
-    b.text(178, 52, f"真ん中の値 {np.median(dur):.0f}日、平均 {dur.mean():.0f}日", ha="right", color="#444444", fontsize=12)
+    b.plot(grid, [100 * ended(t) for t in grid], color=DARK, lw=2)
+    for t in (7, 30, 90):
+        b.plot([t, t], [0, 100 * ended(t)], color="#999999", lw=0.8, ls=":")
+        b.plot([0, t], [100 * ended(t)] * 2, color="#999999", lw=0.8, ls=":")
     b.set_xlim(0, 182)
-    b.set_xticks([0, 30, 60, 90, 120, 150, 180])
     b.set_ylim(0, 100)
-    b.set_xlabel("掲載を始めてから何日目か", fontsize=12)
-    b.set_ylabel("終わった物件の割合(%)", fontsize=12)
-    b.set_title("終わった割合の推移(Kaplan–Meier法)", loc="left", fontsize=12)
-    b.grid(color="#e5e5e5")
+    b.set_xticks([0, 7, 30, 60, 90, 120, 150, 180])
+    b.set_xlabel("掲載を始めてからの日数")
+    b.set_ylabel("終わった物件の割合(%)")
+    panel(b, "(b)")
     fig.tight_layout()
     save(fig, "31a_duration.png")
 
@@ -161,51 +174,85 @@ def fig_roc(c23: pd.DataFrame) -> None:
     a_ = auc(y, p)
     note("31h", "候補数", len(c23))
     note("31h", "AUC(全候補)", a_)
-    fig, ax = new(820, 640)
-    ax.fill_between(x, yy, color=BLUE, alpha=0.15, lw=0)
-    ax.plot(x, yy, color=BLUE, lw=2)
-    ax.plot([0, 1], [0, 1], color="#555555", ls="--", lw=1.5)
-    ax.text(0.30, 0.07, f"塗った面積\n= AUC {a_:.3f}", fontsize=12, color=INK)
-    ax.text(0.60, 0.38, "点線=ランダム\n(AUC 0.5)", fontsize=12, color="#444444")
+    fig, ax = new(700, 640)
+    ax.fill_between(x, yy, color=MIDC, alpha=0.18, lw=0)
+    ax.plot(x, yy, color=DARK, lw=1.8)
+    ax.plot([0, 1], [0, 1], color="#777777", ls="--", lw=1.0)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_aspect("equal")
     ticks = [0, 0.25, 0.5, 0.75, 1]
     ax.set_xticks(ticks)
     ax.set_yticks(ticks)
-    ax.set_xticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=11)
-    ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=11)
+    ax.set_xticklabels(["0", "0.25", "0.5", "0.75", "1"])
+    ax.set_yticklabels(["0", "0.25", "0.5", "0.75", "1"])
     ax.set_xlabel("偽陽性率(FPR)")
     ax.set_ylabel("真陽性率(TPR)")
-    ax.set_title(f"ROC曲線(2023年、{len(c23):,}件)", loc="left", fontsize=12)
-    ax.grid(color="#eeeeee")
     fig.tight_layout()
     save(fig, "31h_roc.png")
 
 
 # ---------- 31b 予測期間 ----------
+def seg_auc_table(d: pd.DataFrame, score: np.ndarray, y: np.ndarray, keys: list[str]):
+    """似た物件どうしのAUCを、集合(日×条件)ごとに出す。重み=終わった物件数×終わらなかった物件数。"""
+    seg = d[["snapshot", *keys]].astype(str).agg("|".join, axis=1).to_numpy()
+    w, a_, kind = [], [], []
+    for sname, idx in pd.Series(np.arange(len(d))).groupby(seg).indices.items():
+        yy = y[idx]
+        npos = yy.sum()
+        nneg = len(yy) - npos
+        if npos == 0 or nneg == 0:
+            continue
+        w.append(npos * nneg)
+        a_.append(auc(yy, score[idx]))
+        kind.append(sname.split("|", 1)[1])
+    return np.array(w, float), np.array(a_), np.array(kind)
+
+
+def boot_seg(w: np.ndarray, a_: np.ndarray, kind: np.ndarray, rng, reps: int = 1000) -> tuple[float, float, float]:
+    uk = np.unique(kind)
+    idx = {k: np.flatnonzero(kind == k) for k in uk}
+    est = float(np.average(a_, weights=w))
+    bs = [np.average(a_[p], weights=w[p]) for p in (np.concatenate([idx[uk[i]] for i in rng.integers(0, len(uk), len(uk))]) for _ in range(reps))]
+    lo, hi = np.percentile(bs, [2.5, 97.5])
+    return est, float(lo), float(hi)
+
+
 def fig_horizon(c23: pd.DataFrame) -> None:
-    days, aucs, ratios = [7, 14, 30], [], []
+    rng = np.random.default_rng(20261120)
+    mem = members(c23)
+    days = [7, 14, 30]
+    A, R = [], []
     for h in days:
         p, y = c23[f"base_{h}"].to_numpy(), c23[f"target_{h}"].to_numpy()
-        aucs.append(within_auc(c23, p, y, SIM_A))
+        A.append(boot_seg(*seg_auc_table(c23, p, y, SIM_A), rng))
         hi = p >= np.quantile(p, 0.7)
-        ratios.append(y[hi].mean() / y[~hi].mean())
-        note("31b", f"{h}日 似た物件どうしのAUC", aucs[-1])
-        note("31b", f"{h}日 上位30%は残りの何倍", ratios[-1])
-    cols = [BLUE, LSTEEL, LSTEEL]
-    fig, ax = new(1100, 474, 2)
-    for a, vals, fmt, ylim, title in [(ax[0], aucs, "{:.3f}", (0.48, 0.60), "AUC(似た物件どうし): ほぼ同じ"),
-                                      (ax[1], ratios, "{:.2f}倍", (1.0, 2.25), "上位30%は、残りの何倍終わったか")]:
-        for i, v in enumerate(vals):
-            a.bar(i, v, 0.6, color=cols[i])
-            a.text(i, v + (0.003 if ylim[1] < 1 else 0.04), fmt.format(v), ha="center", fontsize=12)
+        r0 = y[hi].mean() / y[~hi].mean()
+        bs = []
+        for _ in range(500):
+            idx = boot_unit_idx(mem, rng)
+            yy, hh = y[idx], hi[idx]
+            bs.append(yy[hh].mean() / yy[~hh].mean())
+        R.append((r0, *np.percentile(bs, [2.5, 97.5])))
+        note("31b", f"{h}日 似た物件どうしのAUC", A[-1][0])
+        note("31b", f"{h}日 似た物件どうしのAUC 95%区間 下", A[-1][1])
+        note("31b", f"{h}日 似た物件どうしのAUC 95%区間 上", A[-1][2])
+        note("31b", f"{h}日 上位30%は残りの何倍", R[-1][0])
+        note("31b", f"{h}日 上位30%は残りの何倍 95%区間 下", R[-1][1])
+        note("31b", f"{h}日 上位30%は残りの何倍 95%区間 上", R[-1][2])
+    fig, ax = new(1100, 420, 2)
+    for a, vals, ylab, ylim, ref in [(ax[0], A, "AUC(似た物件どうし)", (0.49, 0.60), 0.5), (ax[1], R, "上位30% ÷ 残り(倍)", (1.0, 2.3), None)]:
+        for i, (v, lo, hi) in enumerate(vals):
+            dot_ci(a, i, v, lo, hi)
+        if ref is not None:
+            a.axhline(ref, color="#777777", ls="--", lw=1.0)
+        a.set_xlim(-0.5, 2.5)
         a.set_ylim(*ylim)
         a.set_xticks(range(3))
-        a.set_xticklabels(["7日", "14日", "30日"], fontsize=12)
-        a.set_title(title, loc="left", fontsize=12)
-    ax[0].axhline(0.5, color="black", ls="--", lw=1)
-    ax[0].set_ylabel("点線=ランダム(0.5)", fontsize=10)
+        a.set_xticklabels(["7日", "14日", "30日"])
+        a.set_ylabel(ylab)
+    panel(ax[0], "(a)")
+    panel(ax[1], "(b)")
     fig.tight_layout()
     save(fig, "31b_horizon.png")
 
@@ -229,13 +276,13 @@ def best_cuts(p: np.ndarray, y: np.ndarray, k: int) -> list[float]:
 
 
 def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
+    rng = np.random.default_rng(20261121)
     p22, y22 = c22["base_7"].to_numpy(), c22["target_7"].to_numpy()
     cuts = {"2グループ版": best_cuts(p22, y22, 2), "3グループ版": best_cuts(p22, y22, 3)}
     for k, v in cuts.items():
-        note("31c", f"{k} 線(2022年で決めた)", 100 * v[0] if len(v) == 1 else 100 * v[0])
+        note("31c", f"{k} 線(2022年で決めた)", 100 * v[0])
         if len(v) == 2:
             note("31c", f"{k} 2本目の線", 100 * v[1])
-    # 確認用: 単純に等分した線(2等分・3等分)でも、3グループ版のほうが高いか
     eq = {"2グループ版(等分)": [float(np.quantile(p22, 0.5))], "3グループ版(等分)": np.quantile(p22, [1 / 3, 2 / 3]).tolist()}
     for d, yname in [(c23, "2023"), (c24, "2024")]:
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
@@ -247,10 +294,10 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
             lv = level(p, c)
             for i, g in enumerate(["低", "高"] if len(c) == 1 else ["低", "中", "高"]):
                 note("31c", f"{yname} {nm} {g}の割合(%)", 100 * (lv == i).mean())
-    COL = {"低": BLUE, "中": MID, "高": ACC}
-    sets = [(c23, "2023年"), (c24, "2024年1〜3月(一度も使っていない)")]
-    fig, ax = new(1130, 500, 2)
-    for a, (d, yname) in zip(ax, sets):
+    COL = {"低": LIGHT, "中": MIDC, "高": DARK}
+    sets = [(c23, "2023年"), (c24, "2024年1〜3月")]
+    fig, ax = new(1130, 470, 2)
+    for a, (d, yname), pl in zip(ax, sets, ["(a) 2023年", "(b) 2024年1〜3月"]):
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
         x0, ticks, labs = 0, [], []
         for nm, c in cuts.items():
@@ -261,36 +308,45 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
                 r = 100 * y[lv == i].mean()
                 note("31c", f"{yname[:4]} {nm} {names[i]} 終了率(%)", r)
                 a.bar(xx, r, 0.78, color=COL[names[i]])
-                a.text(xx, r + 0.6, f"{r:.0f}%", ha="center", fontsize=12)
+                a.text(xx, r + 0.5, f"{r:.1f}", ha="center", fontsize=10.5)
                 ticks.append(xx)
                 labs.append(names[i])
-            a.text(xs.mean(), -0.20, nm, ha="center", fontsize=12, color=INK, transform=a.get_xaxis_transform())
+            a.text(xs.mean(), -0.19, nm, ha="center", transform=a.get_xaxis_transform())
             x0 = xs[-1] + 1.6
         a.set_xticks(ticks)
-        a.set_xticklabels(labs, fontsize=12)
-        a.set_ylim(0, 32)
-        a.set_title(yname, loc="left", fontsize=12)
-    ax[0].set_ylabel("7日以内に終わった割合(%)", fontsize=12)
+        a.set_xticklabels(labs)
+        a.set_ylim(0, 30)
+        a.set_title(pl, loc="left", fontsize=12)
+    ax[0].set_ylabel("7日以内に終わった割合(%)")
     fig.tight_layout(w_pad=3.0)
     fig.subplots_adjust(bottom=0.2)
     save(fig, "31c1_levels_rates.png")
 
-    rows = [("分けない(確率そのまま)", GRAY, None), ("3グループ版", MID, cuts["3グループ版"]), ("2グループ版", ACC, cuts["2グループ版"]), ("2グループ版(15%・発表で使う線)", LACC, [T])]
-    fig, b = new(820, 470)
-    w = 0.21
+    rows = [("分けない(確率そのまま)", "o", None), ("3グループ版", "s", cuts["3グループ版"]), ("2グループ版", "^", cuts["2グループ版"]), ("2グループ版(15%)", "D", [T])]
+    fig, b = new(900, 450)
+    offs = [-0.27, -0.09, 0.09, 0.27]
     for i, (d, yname) in enumerate(sets):
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
-        for j, (nm, c, cut) in enumerate(rows):
+        mem = members(d)
+        draws = {nm: [] for nm, _, _ in rows}
+        for _ in range(300):
+            idx = boot_unit_idx(mem, rng)
+            for nm, _, cut in rows:
+                draws[nm].append(auc(y[idx], p[idx] if cut is None else level(p[idx], cut)))
+        for j, (nm, mk, cut) in enumerate(rows):
             v = auc(y, p if cut is None else level(p, cut))
+            lo, hi = np.percentile(draws[nm], [2.5, 97.5])
             note("31c", f"{yname[:4]} AUC {nm}", v)
-            b.bar(i + (j - 1.5) * w, v, w * 0.94, color=c, label=nm if i == 0 else None)
-            b.text(i + (j - 1.5) * w, v + 0.004, f"{v:.3f}", ha="center", fontsize=9)
-    b.axhline(0.5, color="black", ls="--", lw=1)
-    b.set_ylim(0.5, 0.70)
+            note("31c", f"{yname[:4]} AUC {nm} 95%区間 下", lo)
+            note("31c", f"{yname[:4]} AUC {nm} 95%区間 上", hi)
+            dot_ci(b, i + offs[j], v, lo, hi, marker=mk, label=nm if i == 0 else None)
+    b.axhline(0.5, color="#777777", ls="--", lw=1.0)
+    b.set_ylim(0.5, 0.66)
+    b.set_xlim(-0.5, 1.5)
     b.set_xticks([0, 1])
-    b.set_xticklabels(["2023年", "2024年1〜3月"], fontsize=12)
-    b.legend(frameon=False, loc="upper right", fontsize=9.5, ncol=2, columnspacing=0.8, handlelength=1.2)
-    b.set_title("AUC(全物件)", loc="left", fontsize=12)
+    b.set_xticklabels(["2023年", "2024年1〜3月"])
+    b.set_ylabel("AUC(全物件)")
+    b.legend(loc="upper right", fontsize=10.5, ncol=2, columnspacing=1.0)
     fig.tight_layout()
     save(fig, "31c2_levels_auc.png")
 
@@ -311,21 +367,20 @@ def pair_V(d: pd.DataFrame, t: float) -> float:
 
 def fig_boundary(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     grid = [0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30]
-    fig, a = new(820, 330)
-    for d, color, nm in [(c22, BLUE, "2022年"), (c23, ACC, "2023年")]:
+    fig, a = new(820, 340)
+    for d, color, mk, nm in [(c22, MIDC, "s", "2022年"), (c23, DARK, "o", "2023年")]:
         v = [100 * pair_V(d, t) for t in grid]
         for t, x in zip(grid, v):
             note("31g", f"{nm} 線{100 * t:.0f}% 効き目(100組あたり)", x)
-        a.plot([100 * t for t in grid], v, marker="o", color=color, lw=2.5, ms=6, label=nm)
+        a.plot([100 * t for t in grid], v, marker=mk, color=color, lw=1.6, ms=5.5, label=nm)
     a.axvspan(10, 15, color="#E6E6E6", alpha=0.8, lw=0)
-    a.axvline(15, color=INK, ls="--", lw=1.2)
-    a.text(15.4, 0.15, "15%", color=INK, fontsize=12, va="bottom")
+    a.axvline(15, color="#555555", ls="--", lw=1.0)
     a.set_xlim(5, 30)
-    a.set_ylim(0, 3.6)
-    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)", fontsize=11)
-    a.set_ylabel("効き目\n(100組あたり)", fontsize=11)
-    a.legend(frameon=False, loc="upper right", fontsize=11)
-    a.grid(color="#e5e5e5")
+    a.set_ylim(0, 3.2)
+    a.set_xticks([5, 10, 15, 20, 25, 30])
+    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)")
+    a.set_ylabel("効き目(100組あたり)")
+    a.legend(loc="upper right")
     fig.tight_layout()
     save(fig, "31g_boundary.png")
 
@@ -367,28 +422,26 @@ def fig_result2023(c23: pd.DataFrame) -> None:
         note("31d", f"{k.replace(chr(10), '')} 差(ポイント)", e)
         note("31d", f"{k.replace(chr(10), '')} 95%区間 下", l_)
         note("31d", f"{k.replace(chr(10), '')} 95%区間 上", h_)
-    fig, ax = new(1180, 508, 2, [1, 1.25])
+    fig, ax = new(1100, 440, 2, [0.8, 1.2])
     a = ax[0]
-    for i, (n, v, c) in enumerate([("低", lo_r, BLUE), ("全体", all_r, GRAY), ("高", hi_r, ACC)]):
+    for i, (v, c) in enumerate([(lo_r, LIGHT), (all_r, "#C9C9C9"), (hi_r, DARK)]):
         a.bar(i, v, 0.62, color=c)
-        a.text(i, v + 0.4, f"{v:.1f}%", ha="center", fontsize=12)
-    a.text(1.0, 21.2, f"高 / 低 = {hi_r / lo_r:.2f}倍", ha="center", fontsize=12, color=INK)
+        a.text(i, v + 0.4, f"{v:.1f}", ha="center", fontsize=10.5)
     a.set_xticks(range(3))
-    a.set_xticklabels(["低", "全体", "高"], fontsize=12)
-    a.set_ylim(0, 24)
-    a.set_title(f"7日以内に終わった割合(%)  {len(c23):,}件", loc="left", fontsize=12)
+    a.set_xticklabels(["低", "全体", "高"])
+    a.set_ylim(0, 20)
+    a.set_ylabel("7日以内に終わった割合(%)")
+    panel(a, "(a)")
     b = ax[1]
     for i, (n, (e, l_, h_)) in enumerate(ws.items()):
-        b.barh(i, e, 0.5, color=STEEL, label="棒=高と低の差" if i == 0 else None)
-        b.plot([l_, h_], [i, i], color=PINK, lw=1.6, marker="|", ms=10, mew=1.6, zorder=3, label="誤差線=95%信頼区間" if i == 0 else None)
-        b.text(h_ + 0.35, i, f"+{e:.1f}", va="center", fontsize=12)
+        b.barh(i, e, 0.5, color=MIDC)
+        dot_ci(b, i, e, l_, h_, marker="none", color="#222222", vertical=False)
     b.set_yticks(range(2))
-    b.set_yticklabels(list(ws), fontsize=12)
-    b.set_xlim(0, 10.5)
-    b.set_ylim(-0.6, 2.1)
-    b.set_xlabel("高と低の差(ポイント)", fontsize=12)
-    b.legend(frameon=False, loc="upper right", fontsize=11)
-    b.set_title("似た物件どうしの差は小さい", loc="left", fontsize=12)
+    b.set_yticklabels(list(ws))
+    b.set_xlim(0, 9)
+    b.set_ylim(-0.6, 1.6)
+    b.set_xlabel("高と低の差(ポイント)")
+    panel(b, "(b)")
     fig.tight_layout()
     save(fig, "31d_result2023.png")
 
@@ -440,41 +493,37 @@ def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
         note("31e", f"{k} 95%区間 下", lo)
         note("31e", f"{k} 95%区間 上", hi_)
     rows = rows[::-1]
-    fig, ax = new(1060, 540)
+    fig, ax = new(1000, 480)
     for i, (k, gap, lo, hi_) in enumerate(rows):
-        c = ACC if k == "今回の方法" else (GRAY if k.startswith("ランダム") else STEEL)
-        ax.barh(i, gap, 0.62, color=c)
-        ax.plot([lo, hi_], [i, i], color=PINK, lw=1.6, marker="|", ms=10, mew=1.6, zorder=3)
-        ax.text(max(hi_, gap) + 0.25, i, f"{gap:+.1f}", va="center", fontsize=12)
+        ax.barh(i, gap, 0.6, color=MIDC)
+        dot_ci(ax, i, gap, lo, hi_, marker="none", color="#222222", vertical=False)
     ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([r[0] for r in rows], fontsize=12)
-    ax.axvline(0, color="black", lw=0.8)
-    ax.set_xlim(-1.5, 10)
-    ax.set_xlabel("高と低の差(ポイント)= 高の終了率 − 低の終了率", fontsize=12)
-    ax.set_title("棒=高と低の差、誤差線=95%信頼区間", loc="left", fontsize=12)
+    ax.set_yticklabels([r[0] for r in rows])
+    ax.axvline(0, color="#222222", lw=0.8)
+    ax.set_xlim(-1.5, 9)
+    ax.set_xlabel("高と低の差(ポイント)")
     fig.tight_layout()
     save(fig, "31e_baselines.png")
 
 
 # ---------- 31f 2024年1〜3月 ----------
 def fig_holdout(c23: pd.DataFrame, c24: pd.DataFrame) -> None:
-    fig, a = new(900, 500)
+    fig, a = new(860, 460)
     for i, (d, nm) in enumerate([(c23, "2023年"), (c24, "2024年1〜3月")]):
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
         hi = p >= T
         lo_r, hi_r = 100 * y[~hi].mean(), 100 * y[hi].mean()
         for k, v in [("件数", len(d)), ("低 終了率(%)", lo_r), ("高 終了率(%)", hi_r), ("倍率", hi_r / lo_r), ("高の割合(%)", 100 * hi.mean())]:
             note("31f", f"{nm} {k}", v)
-        a.bar(i - 0.19, lo_r, 0.34, color=BLUE, label="低" if i == 0 else None)
-        a.bar(i + 0.19, hi_r, 0.34, color=ACC, label="高" if i == 0 else None)
-        a.text(i - 0.19, lo_r + 0.5, f"{lo_r:.1f}%", ha="center", fontsize=12)
-        a.text(i + 0.19, hi_r + 0.5, f"{hi_r:.1f}%", ha="center", fontsize=12)
-        a.text(i, max(hi_r, lo_r) + 5.5, f"高 / 低 = {hi_r / lo_r:.2f}倍", ha="center", fontsize=12, color=INK)
+        a.bar(i - 0.19, lo_r, 0.34, color=LIGHT, label="低" if i == 0 else None)
+        a.bar(i + 0.19, hi_r, 0.34, color=DARK, label="高" if i == 0 else None)
+        a.text(i - 0.19, lo_r + 0.5, f"{lo_r:.1f}", ha="center", fontsize=10.5)
+        a.text(i + 0.19, hi_r + 0.5, f"{hi_r:.1f}", ha="center", fontsize=10.5)
     a.set_xticks([0, 1])
-    a.set_xticklabels([f"2023年\n({len(c23):,}件)", f"2024年1〜3月\n({len(c24):,}件、一度も使っていない)"], fontsize=12)
-    a.set_ylim(0, 40)
-    a.legend(frameon=False, loc="upper left", fontsize=12)
-    a.set_title("7日以内に終わった割合(%)", loc="left", fontsize=12)
+    a.set_xticklabels([f"2023年\n(n={len(c23):,})", f"2024年1〜3月\n(n={len(c24):,})"])
+    a.set_ylim(0, 30)
+    a.set_ylabel("7日以内に終わった割合(%)")
+    a.legend(loc="upper left")
     fig.tight_layout()
     save(fig, "31f_holdout.png")
 
@@ -482,25 +531,23 @@ def fig_holdout(c23: pd.DataFrame, c24: pd.DataFrame) -> None:
 # ---------- 国分寺市と多摩地域: 学習する範囲を変えても、国分寺市での当たり具合は同じか(15番の表を図にする) ----------
 def fig_scope() -> None:
     """入力は summary_tables/15_scope_comparison.csv(15_scope_comparison.py が、範囲ごとに学び直して国分寺市の2023年で評価した結果)。
-    ここでは再学習しない(scikit-learn が必要)ため、表の値をそのまま図にし、31_slide_numbers.csv に写す。"""
+    ここでは再学習しない(scikit-learn が必要)ため、表の値をそのまま図にし、31_slide_numbers.csv に写す。区間は15番の差の表を参照。"""
     t = pd.read_csv(TAB / "15_scope_comparison.csv")
     r = t[(t["予測期間(日)"] == 7) & t["候補の似かた"].str.startswith("A")].iloc[0]
-    items = [("国分寺市だけ", "S1", STEEL), ("近隣10市\n+国分寺市", "S2", STEEL), ("多摩地域\n全体", "S3", STEEL),
-             ("近隣10市\nだけ", "S2x", BLUE), ("多摩地域\nだけ", "S3x", BLUE)]
-    fig, a = new(900, 440)
-    for i, (nm, k, c) in enumerate(items):
-        x = i + (0.4 if i >= 3 else 0)
+    items = [("国分寺市\nだけ", "S1"), ("近隣10市\n+国分寺市", "S2"), ("多摩地域\n全体", "S3"),
+             ("近隣10市\nのみ", "S2x"), ("多摩地域\nのみ", "S3x")]
+    fig, a = new(860, 420)
+    xs = [0, 1, 2, 3.4, 4.4]
+    for x, (nm, k) in zip(xs, items):
         v = float(r[k])
         note("31n", f"{nm.replace(chr(10), '')} AUC(7日・似た物件どうし・国分寺市2023年)", v)
-        a.bar(x, v, 0.62, color=c)
-        a.text(x, v + 0.002, f"{v:.3f}", ha="center", fontsize=12)
-    a.axhline(0.5, color="black", ls="--", lw=1)
-    a.text(-0.4, 0.5025, "ランダム(0.5)", fontsize=10)
-    a.set_xticks([i + (0.4 if i >= 3 else 0) for i in range(5)])
-    a.set_xticklabels([n for n, _, _ in items], fontsize=10.5)
-    a.set_ylim(0.48, 0.60)
-    a.set_title("国分寺市でのAUC(学習した範囲ごと、7日)", loc="left", fontsize=12)
-    a.text(3.7, 0.585, "国分寺市を学習から除いた\n(外部検証)", ha="center", fontsize=10.5, color=BLUE)
+        a.plot([x], [v], marker="o", color=DARK, ms=8, ls="none")
+    a.axhline(0.5, color="#777777", ls="--", lw=1.0)
+    a.set_xlim(-0.6, 5.0)
+    a.set_ylim(0.49, 0.60)
+    a.set_xticks(xs)
+    a.set_xticklabels([n for n, _ in items], fontsize=10.5)
+    a.set_ylabel("AUC")
     fig.tight_layout()
     save(fig, "31n_scope.png")
 
