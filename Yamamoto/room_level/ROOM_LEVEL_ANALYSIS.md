@@ -135,13 +135,13 @@ python -m analysis.28_fair_three_vs_two          # 27と同じ入力
 
 2024年1〜3月の物件は、元のTSVから初回に抽出する(約40秒)。
 
-## 発表スライドの図(29〜31番)
+## 発表スライドの図(30・31番)
 
-発表スライド(全19枚)のグラフ・例・件数は、すべて **31番** がデータから直接計算する。図とページの対応は `FIGURE_SOURCES.md`。
+発表スライド(全19枚)のグラフ・例・件数は、すべて **31番** がデータから直接計算する。発表用の資料は `presentation/` にまとめてあり、図とページの対応は `presentation/FIGURE_SOURCES.md`。
 
-- **29 `29_deck_figures.py`**: 発表用に描き直した図(29a〜h)。入力は `summary_tables/` の表だけ。31番ができたので、今のスライドでは使っていない(履歴として残す)。
+- **29(削除)**: 発表用に最初に描いた図(29a〜h)と `29_deck_figures.py`。31番に置き換えたため削除した(履歴には残る)。
 - **30 `30_roc_curve.py`**: 2023年の候補33,672件のROC曲線の点を `summary_tables/30_roc_2023.csv` に出す。AUC 0.6253。
-- **31 `31_slide_figures.py`**: 次のデータから計算し、`figures/31*.png`(右下にスクリプト名)と `summary_tables/31_slide_numbers.csv`(図・例・件数に使った数字の全部)を出す。scikit-learn・lifelines は使わない(AUCは順位から、Kaplan–Meier法は自前)。
+- **31 `31_slide_figures.py`**: 次のデータから計算し、`figures/31*.png`(論文用)と `summary_tables/31_slide_numbers.csv`(図・例・件数に使った数字の全部)を出す。発表用の図(`presentation/figures/31*.png`)は、同じ計算を `presentation/make_talk_figures.py` が見た目だけ変えて描く。scikit-learn・lifelines は使わない(AUCは順位から、Kaplan–Meier法は自前)。
   - `data/prepared/kokubunji_raw.parquet`(国分寺市)、`data/prepared/tama_raw.parquet`(多摩地域)
   - 17・25・26番の候補(`candidates_2022/2023/2024q1.parquet`)
   - 元のTSV(国分寺市の契約日の件数だけ。ないときは数えずに進む)
