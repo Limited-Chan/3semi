@@ -231,6 +231,18 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
         note("31c", f"{k} 線(2022年で決めた)", 100 * v[0] if len(v) == 1 else 100 * v[0])
         if len(v) == 2:
             note("31c", f"{k} 2本目の線", 100 * v[1])
+    # 確認用: 単純に等分した線(2等分・3等分)でも、3グループ版のほうが高いか
+    eq = {"2グループ版(等分)": [float(np.quantile(p22, 0.5))], "3グループ版(等分)": np.quantile(p22, [1 / 3, 2 / 3]).tolist()}
+    for d, yname in [(c23, "2023"), (c24, "2024")]:
+        p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
+        a2, a3 = auc(y, level(p, eq["2グループ版(等分)"])), auc(y, level(p, eq["3グループ版(等分)"]))
+        note("31c", f"{yname} 等分 AUC 2グループ版", a2)
+        note("31c", f"{yname} 等分 AUC 3グループ版", a3)
+        note("31c", f"{yname} 等分 3グループ版−2グループ版", a3 - a2)
+        for nm, c in cuts.items():
+            lv = level(p, c)
+            for i, g in enumerate(["低", "高"] if len(c) == 1 else ["低", "中", "高"]):
+                note("31c", f"{yname} {nm} {g}の割合(%)", 100 * (lv == i).mean())
     COL = {"低": BLUE, "中": MID, "高": ACC}
     sets = [(c23, "2023年"), (c24, "2024年1〜3月(一度も使っていない)")]
     fig, ax = new(1130, 500, 2)
@@ -467,6 +479,25 @@ def fig_holdout(c23: pd.DataFrame, c24: pd.DataFrame) -> None:
 EXAMPLES = [("例A", "1LDK", "0-10", "4", "1LDK・築10年未満・家賃8〜10万円"), ("例B", "1K", "30-40", "2", "1K・築30〜40年・家賃4〜6万円")]
 
 
+def app_numbers() -> None:
+    """アプリ案の画面の数字: 1K・築10〜20年・家賃6〜8万円の過去の掲載(国分寺市)。24と同じ手順(Kaplan–Meier法)。"""
+    d = load_prepared(ROOT / "data" / "prepared" / "kokubunji_raw.parquet")
+    s = d[d["start_year"].between(2020, 2023) & d["valid_complete_duration"]].copy()
+    s = s[(s["layout"] == "1K") & (s["age"] >= 10) & (s["age"] < 20) & ((s["rent"] // 20000 * 2) == 6)]
+    dur, ev = s["duration"].to_numpy(float), (s["end_date"] < END).to_numpy()
+    times = np.unique(dur[ev])
+    surv = np.cumprod(1 - np.array([((dur == t) & ev).sum() for t in times]) / np.array([(dur >= t).sum() for t in times]))
+
+    def S(t: float) -> float:
+        k = np.searchsorted(times, t, side="right") - 1
+        return 1.0 if k < 0 else float(surv[k])
+
+    note("アプリ", "1K・築10〜20年・家賃6〜8万円 件数", len(s))
+    for q, nm in [(0.75, "25%が終わる日"), (0.5, "半分が終わる日"), (0.25, "75%が終わる日")]:
+        note("アプリ", nm, float(times[np.argmax(surv <= q)]))
+    note("アプリ", "12日載った物件が、あと7日以内に終わる割合(%)", 100 * (1 - S(19) / S(12)))
+
+
 def examples(c23: pd.DataFrame) -> None:
     for name, lay, age, rent, label in EXAMPLES:
         g = c23[(c23["layout_group"] == lay) & (c23["age_group"].astype(str) == age) & (c23["rent_group"].astype(str) == rent)]
@@ -664,8 +695,38 @@ def fig_extra(c23: pd.DataFrame) -> None:
     save(fig, "31m_extra.png")
 
 
+# ---------- 文字だけで出てくる件数(約21万件、契約日14件など) ----------
+TSV = Path("/Users/aki/Downloads/bukken_rent_v1.0.1.tsv")
+
+
+def counts() -> None:
+    """確率の式を学んだ件数(17・26と同じ手順)と、国分寺市の件数・契約日の件数(21と同じ手順)。"""
+    from src.data import prepare
+    from src.listing_episodes import build_episodes_fast
+    raw = prepare(pd.read_parquet(ROOT / "data" / "prepared" / "tama_raw.parquet"))
+    ep = build_episodes_fast(raw, max_gap_days=1)
+    cutoff = pd.Timestamp("2023-01-01")
+    tr = ep.loc[ep["start_year"].isin([2021, 2022]) & (ep["start_date"] < cutoff)].copy()
+    event_end = tr["end_date"].lt(cutoff) & tr["end_date"].lt(END)
+    days = (tr["end_date"].where(event_end, cutoff) - tr["start_date"]).dt.days
+    note("件数", "確率の式を学んだ件数(多摩地域、2021〜2022年開始の部屋単位エピソード)", int((days >= 0).sum()))
+    k = load_prepared(ROOT / "data" / "prepared" / "kokubunji_raw.parquet")
+    note("件数", "国分寺市の掲載(2020〜2023年開始)", int(k["start_year"].between(2020, 2023).sum()))
+    if TSV.exists():
+        n = 0
+        for ch in pd.read_csv(TSV, sep="\t", usecols=["addr1_2_name", "pub_start_date", "keiyaku_date"], dtype=str,
+                              chunksize=500_000, keep_default_na=False):
+            f = ch[(ch["addr1_2_name"] == "国分寺市") & ch["pub_start_date"].str[:4].isin(["2020", "2021", "2022", "2023"])]
+            n += int((f["keiyaku_date"].str.strip() != "").sum())
+        note("件数", "国分寺市で契約日(keiyaku_date)が入っている掲載", n)
+    else:
+        print(f"元のTSVがないため、契約日の件数は数えない: {TSV}")
+
+
 def main() -> None:
     c22, c23, c24 = (pd.read_parquet(p).reset_index(drop=True) for p in (C22, C23, C24))
+    counts()
+    app_numbers()
     examples(c23)
     fig_attrs()
     fig_boundary_detail(c22, c23)
