@@ -49,14 +49,20 @@ plt.rcParams.update({
     "xtick.color": "#333333", "ytick.color": "#333333", "legend.frameon": False, "figure.facecolor": "white",
 })
 DPI = 150
-# --talk: 発表用の図(文字を大きく、見せたい1つの比較だけに強調色を付ける)。論文用の図は figures/、発表用は figures/talk/
-TALK = "--talk" in sys.argv
-FS = 1.25 if TALK else 1.0
+# 発表用の図(文字を大きく、見せたい1つの比較だけに強調色を付ける)は presentation/make_talk_figures.py が、set_talk(True) にして作る。
+# 論文用の図は figures/、発表用は presentation/figures/ に出る。
+TALK = False
+FS = 1.0
 HI, BASE, PALE = "#D55E00", "#7A93AB", "#C8CFD6"
-if TALK:
-    plt.rcParams.update({"font.size": 15, "axes.labelsize": 15, "axes.titlesize": 15, "xtick.labelsize": 14, "ytick.labelsize": 14, "legend.fontsize": 13})
-    FIG = FIG / "talk"
-    FIG.mkdir(exist_ok=True)
+
+
+def set_talk(on: bool = True) -> None:
+    global TALK, FS, FIG
+    TALK, FS = on, (1.25 if on else 1.0)
+    if on:
+        plt.rcParams.update({"font.size": 15, "axes.labelsize": 15, "axes.titlesize": 15, "xtick.labelsize": 14, "ytick.labelsize": 14, "legend.fontsize": 13})
+        FIG = HERE / "presentation" / "figures"
+        FIG.mkdir(parents=True, exist_ok=True)
 NUMS: list[dict] = []
 
 
