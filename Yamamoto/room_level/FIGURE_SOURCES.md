@@ -4,6 +4,7 @@
 - 図には出典を入れていない(論文のように、スライドの図の説明に「出典: Yamamoto/room_level/analysis/31_slide_figures.py」と書く)。
 - 図と例に使った数字は、すべて `summary_tables/31_slide_numbers.csv` に出る。これまでの分析の表(19・20・21・22・25・26・27・28)と同じ値になることを確認した。
 - 実行: `cd Yamamoto/room_level && python3 analysis/31_slide_figures.py`(約1分。scikit-learn・lifelines は不要。AUCは順位から、Kaplan–Meier法は自前で計算)
+- 図は2種類ある。**論文用**(`figures/31*.png`。色は落ち着いた1色の濃淡)と、**発表用**(`figures/talk/31*.png`。文字を大きくし、見せたい1つの比較だけに強調色を付けた)。同じスクリプトで、`python3 analysis/31_slide_figures.py --talk` が発表用を作る(数字の表は更新しない)。スライドには発表用を使い、図の詳しい説明は話者ノートに入れている。
 - 画面イメージ(19ページ)だけはHTMLで作った絵。右側の数字(3,000件・5日・26日・19%)も31番で計算し直して一致を確認した。
 - 文字だけで出てくる件数(学習213,256件=約21万件、国分寺市22,332件、契約日14件)も31番が数える(31_slide_numbers.csv の「件数」)。
 - 作り直す順番とデータの入手は `ROOM_LEVEL_ANALYSIS.md` の「発表スライドの図(29〜31番)」。

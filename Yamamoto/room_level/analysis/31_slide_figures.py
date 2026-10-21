@@ -49,6 +49,14 @@ plt.rcParams.update({
     "xtick.color": "#333333", "ytick.color": "#333333", "legend.frameon": False, "figure.facecolor": "white",
 })
 DPI = 150
+# --talk: 発表用の図(文字を大きく、見せたい1つの比較だけに強調色を付ける)。論文用の図は figures/、発表用は figures/talk/
+TALK = "--talk" in sys.argv
+FS = 1.25 if TALK else 1.0
+HI, BASE, PALE = "#D55E00", "#7A93AB", "#C8CFD6"
+if TALK:
+    plt.rcParams.update({"font.size": 15, "axes.labelsize": 15, "axes.titlesize": 15, "xtick.labelsize": 14, "ytick.labelsize": 14, "legend.fontsize": 13})
+    FIG = FIG / "talk"
+    FIG.mkdir(exist_ok=True)
 NUMS: list[dict] = []
 
 
@@ -98,7 +106,7 @@ DARK, MIDC, LIGHT = "#1F4E79", "#5B7C99", "#A9BCCF"
 
 
 def panel(a, label: str) -> None:
-    a.set_title(label, loc="left", fontsize=12)
+    a.set_title(label, loc="left", fontsize=12 * FS)
 
 
 def dot_ci(a, x: float, v: float, lo: float | None, hi: float | None, marker: str = "o", color: str = DARK, label=None, vertical: bool = True) -> None:
@@ -140,16 +148,20 @@ def fig_duration() -> None:
 
     fig, ax = new(1664, 480, 2)
     a = ax[0]
-    a.bar(range(len(labs)), share.to_numpy(), 0.72, color=MIDC)
+    a.bar(range(len(labs)), share.to_numpy(), 0.72, color=[HI if (TALK and i == 0) else (BASE if TALK else MIDC) for i in range(len(labs))])
     a.set_xticks(range(len(labs)))
-    a.set_xticklabels(labs, fontsize=11)
+    a.set_xticklabels(["0〜6", "7〜", "14〜", "30〜", "60〜", "90〜", "180〜"] if TALK else labs, fontsize=11 * FS)
     a.set_xlabel("掲載日数(日)")
     a.set_ylabel("物件の割合(%)")
     a.set_ylim(0, 32)
     panel(a, "(a)")
     b = ax[1]
     grid = np.arange(0, 181)
-    b.plot(grid, [100 * ended(t) for t in grid], color=DARK, lw=2)
+    b.plot(grid, [100 * ended(t) for t in grid], color=DARK, lw=2.5 if TALK else 2)
+    if TALK:
+        for t, dx, dy in [(7, 6, -9), (30, 6, -10), (90, 6, -10)]:
+            b.plot([t], [100 * ended(t)], "o", color=HI, ms=9)
+            b.annotate(f"{t}日: {100 * ended(t):.0f}%", (t, 100 * ended(t)), xytext=(t + dx, 100 * ended(t) + dy), fontsize=17, color=HI)
     for t in (7, 30, 90):
         b.plot([t, t], [0, 100 * ended(t)], color="#999999", lw=0.8, ls=":")
         b.plot([0, t], [100 * ended(t)] * 2, color="#999999", lw=0.8, ls=":")
@@ -175,8 +187,10 @@ def fig_roc(c23: pd.DataFrame) -> None:
     note("31h", "候補数", len(c23))
     note("31h", "AUC(全候補)", a_)
     fig, ax = new(700, 640)
-    ax.fill_between(x, yy, color=MIDC, alpha=0.18, lw=0)
-    ax.plot(x, yy, color=DARK, lw=1.8)
+    ax.fill_between(x, yy, color=HI if TALK else MIDC, alpha=0.16 if TALK else 0.18, lw=0)
+    ax.plot(x, yy, color=HI if TALK else DARK, lw=2.6 if TALK else 1.8)
+    if TALK:
+        ax.text(0.42, 0.2, f"面積 = AUC\n= {a_:.3f}", fontsize=22, color=HI)
     ax.plot([0, 1], [0, 1], color="#777777", ls="--", lw=1.0)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -243,7 +257,7 @@ def fig_horizon(c23: pd.DataFrame) -> None:
     fig, ax = new(1100, 420, 2)
     for a, vals, ylab, ylim, ref in [(ax[0], A, "AUC(似た物件どうし)", (0.49, 0.60), 0.5), (ax[1], R, "上位30% ÷ 残り(倍)", (1.0, 2.3), None)]:
         for i, (v, lo, hi) in enumerate(vals):
-            dot_ci(a, i, v, lo, hi)
+            dot_ci(a, i, v, lo, hi, color=(HI if i == 0 else BASE) if TALK else DARK)
         if ref is not None:
             a.axhline(ref, color="#777777", ls="--", lw=1.0)
         a.set_xlim(-0.5, 2.5)
@@ -294,7 +308,7 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
             lv = level(p, c)
             for i, g in enumerate(["低", "高"] if len(c) == 1 else ["低", "中", "高"]):
                 note("31c", f"{yname} {nm} {g}の割合(%)", 100 * (lv == i).mean())
-    COL = {"低": LIGHT, "中": MIDC, "高": DARK}
+    COL = {"低": PALE, "中": BASE, "高": HI} if TALK else {"低": LIGHT, "中": MIDC, "高": DARK}
     sets = [(c23, "2023年"), (c24, "2024年1〜3月")]
     fig, ax = new(1130, 470, 2)
     for a, (d, yname), pl in zip(ax, sets, ["(a) 2023年", "(b) 2024年1〜3月"]):
@@ -308,18 +322,18 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
                 r = 100 * y[lv == i].mean()
                 note("31c", f"{yname[:4]} {nm} {names[i]} 終了率(%)", r)
                 a.bar(xx, r, 0.78, color=COL[names[i]])
-                a.text(xx, r + 0.5, f"{r:.1f}", ha="center", fontsize=10.5)
+                a.text(xx, r + 0.5, f"{r:.1f}", ha="center", fontsize=10.5 * FS)
                 ticks.append(xx)
                 labs.append(names[i])
-            a.text(xs.mean(), -0.19, nm, ha="center", transform=a.get_xaxis_transform())
+            a.text(xs.mean(), -0.31 if TALK else -0.19, nm, ha="center", transform=a.get_xaxis_transform())
             x0 = xs[-1] + 1.6
         a.set_xticks(ticks)
         a.set_xticklabels(labs)
         a.set_ylim(0, 30)
-        a.set_title(pl, loc="left", fontsize=12)
+        a.set_title(pl, loc="left", fontsize=12 * FS)
     ax[0].set_ylabel("7日以内に終わった割合(%)")
     fig.tight_layout(w_pad=3.0)
-    fig.subplots_adjust(bottom=0.2)
+    fig.subplots_adjust(bottom=0.32 if TALK else 0.2)
     save(fig, "31c1_levels_rates.png")
 
     rows = [("分けない(確率そのまま)", "o", None), ("3グループ版", "s", cuts["3グループ版"]), ("2グループ版", "^", cuts["2グループ版"]), ("2グループ版(15%)", "D", [T])]
@@ -339,14 +353,14 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
             note("31c", f"{yname[:4]} AUC {nm}", v)
             note("31c", f"{yname[:4]} AUC {nm} 95%区間 下", lo)
             note("31c", f"{yname[:4]} AUC {nm} 95%区間 上", hi)
-            dot_ci(b, i + offs[j], v, lo, hi, marker=mk, label=nm if i == 0 else None)
+            dot_ci(b, i + offs[j], v, lo, hi, marker=mk, color=(HI if (TALK and j == 3) else (BASE if TALK else DARK)), label=nm if i == 0 else None)
     b.axhline(0.5, color="#777777", ls="--", lw=1.0)
-    b.set_ylim(0.5, 0.66)
+    b.set_ylim(0.5, 0.71 if TALK else 0.66)
     b.set_xlim(-0.5, 1.5)
     b.set_xticks([0, 1])
     b.set_xticklabels(["2023年", "2024年1〜3月"])
     b.set_ylabel("AUC(全物件)")
-    b.legend(loc="upper right", fontsize=10.5, ncol=2, columnspacing=1.0)
+    b.legend(loc="upper right", fontsize=10.5 * FS, ncol=2, columnspacing=1.0)
     fig.tight_layout()
     save(fig, "31c2_levels_auc.png")
 
@@ -367,19 +381,19 @@ def pair_V(d: pd.DataFrame, t: float) -> float:
 
 def fig_boundary(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     grid = [0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30]
-    fig, a = new(820, 340)
+    fig, a = new(900, 460) if TALK else new(820, 340)
     for d, color, mk, nm in [(c22, MIDC, "s", "2022年"), (c23, DARK, "o", "2023年")]:
         v = [100 * pair_V(d, t) for t in grid]
         for t, x in zip(grid, v):
             note("31g", f"{nm} 線{100 * t:.0f}% 効き目(100組あたり)", x)
         a.plot([100 * t for t in grid], v, marker=mk, color=color, lw=1.6, ms=5.5, label=nm)
-    a.axvspan(10, 15, color="#E6E6E6", alpha=0.8, lw=0)
-    a.axvline(15, color="#555555", ls="--", lw=1.0)
+    a.axvspan(10, 15, color=HI if TALK else "#E6E6E6", alpha=0.15 if TALK else 0.8, lw=0)
+    a.axvline(15, color=HI if TALK else "#555555", ls="--", lw=2.0 if TALK else 1.0)
     a.set_xlim(5, 30)
     a.set_ylim(0, 3.2)
     a.set_xticks([5, 10, 15, 20, 25, 30])
-    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)")
-    a.set_ylabel("効き目(100組あたり)")
+    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)" if not TALK else "線: 7日以内の確率が何%以上を「上」にするか", fontsize=12 * FS if not TALK else 14)
+    a.set_ylabel("効き目(100組あたり)" if not TALK else "効き目")
     a.legend(loc="upper right")
     fig.tight_layout()
     save(fig, "31g_boundary.png")
@@ -424,9 +438,9 @@ def fig_result2023(c23: pd.DataFrame) -> None:
         note("31d", f"{k.replace(chr(10), '')} 95%区間 上", h_)
     fig, ax = new(1100, 440, 2, [0.8, 1.2])
     a = ax[0]
-    for i, (v, c) in enumerate([(lo_r, LIGHT), (all_r, "#C9C9C9"), (hi_r, DARK)]):
+    for i, (v, c) in enumerate([(lo_r, PALE), (all_r, "#DADADA"), (hi_r, HI)] if TALK else [(lo_r, LIGHT), (all_r, "#C9C9C9"), (hi_r, DARK)]):
         a.bar(i, v, 0.62, color=c)
-        a.text(i, v + 0.4, f"{v:.1f}", ha="center", fontsize=10.5)
+        a.text(i, v + 0.4, f"{v:.1f}", ha="center", fontsize=10.5 * FS)
     a.set_xticks(range(3))
     a.set_xticklabels(["低", "全体", "高"])
     a.set_ylim(0, 20)
@@ -434,7 +448,7 @@ def fig_result2023(c23: pd.DataFrame) -> None:
     panel(a, "(a)")
     b = ax[1]
     for i, (n, (e, l_, h_)) in enumerate(ws.items()):
-        b.barh(i, e, 0.5, color=MIDC)
+        b.barh(i, e, 0.5, color=BASE if TALK else MIDC)
         dot_ci(b, i, e, l_, h_, marker="none", color="#222222", vertical=False)
     b.set_yticks(range(2))
     b.set_yticklabels(list(ws))
@@ -495,12 +509,14 @@ def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     rows = rows[::-1]
     fig, ax = new(1000, 480)
     for i, (k, gap, lo, hi_) in enumerate(rows):
-        ax.barh(i, gap, 0.6, color=MIDC)
+        ax.barh(i, gap, 0.6, color=(HI if k == "今回の方法" else BASE) if TALK else MIDC)
+        if TALK and k in ("今回の方法", "3つの条件を組み合わせた集計"):
+            ax.text(hi_ + 0.2, i, f"{gap:+.1f}", va="center", fontsize=17, color=HI if k == "今回の方法" else "#333333")
         dot_ci(ax, i, gap, lo, hi_, marker="none", color="#222222", vertical=False)
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels([r[0] for r in rows])
     ax.axvline(0, color="#222222", lw=0.8)
-    ax.set_xlim(-1.5, 9)
+    ax.set_xlim(-1.5, 10 if TALK else 9)
     ax.set_xlabel("高と低の差(ポイント)")
     fig.tight_layout()
     save(fig, "31e_baselines.png")
@@ -515,10 +531,10 @@ def fig_holdout(c23: pd.DataFrame, c24: pd.DataFrame) -> None:
         lo_r, hi_r = 100 * y[~hi].mean(), 100 * y[hi].mean()
         for k, v in [("件数", len(d)), ("低 終了率(%)", lo_r), ("高 終了率(%)", hi_r), ("倍率", hi_r / lo_r), ("高の割合(%)", 100 * hi.mean())]:
             note("31f", f"{nm} {k}", v)
-        a.bar(i - 0.19, lo_r, 0.34, color=LIGHT, label="低" if i == 0 else None)
-        a.bar(i + 0.19, hi_r, 0.34, color=DARK, label="高" if i == 0 else None)
-        a.text(i - 0.19, lo_r + 0.5, f"{lo_r:.1f}", ha="center", fontsize=10.5)
-        a.text(i + 0.19, hi_r + 0.5, f"{hi_r:.1f}", ha="center", fontsize=10.5)
+        a.bar(i - 0.19, lo_r, 0.34, color=PALE if TALK else LIGHT, label="低" if i == 0 else None)
+        a.bar(i + 0.19, hi_r, 0.34, color=HI if TALK else DARK, label="高" if i == 0 else None)
+        a.text(i - 0.19, lo_r + 0.5, f"{lo_r:.1f}", ha="center", fontsize=10.5 * FS)
+        a.text(i + 0.19, hi_r + 0.5, f"{hi_r:.1f}", ha="center", fontsize=10.5 * FS)
     a.set_xticks([0, 1])
     a.set_xticklabels([f"2023年\n(n={len(c23):,})", f"2024年1〜3月\n(n={len(c24):,})"])
     a.set_ylim(0, 30)
@@ -541,12 +557,12 @@ def fig_scope() -> None:
     for x, (nm, k) in zip(xs, items):
         v = float(r[k])
         note("31n", f"{nm.replace(chr(10), '')} AUC(7日・似た物件どうし・国分寺市2023年)", v)
-        a.plot([x], [v], marker="o", color=DARK, ms=8, ls="none")
+        a.plot([x], [v], marker="o", color=(HI if k in ("S1", "S3") else BASE) if TALK else DARK, ms=11 if TALK else 8, ls="none")
     a.axhline(0.5, color="#777777", ls="--", lw=1.0)
     a.set_xlim(-0.6, 5.0)
     a.set_ylim(0.49, 0.60)
     a.set_xticks(xs)
-    a.set_xticklabels([n for n, _ in items], fontsize=10.5)
+    a.set_xticklabels([n for n, _ in items], fontsize=(10.5 * FS if not TALK else 11.5))
     a.set_ylabel("AUC")
     fig.tight_layout()
     save(fig, "31n_scope.png")
@@ -806,11 +822,12 @@ def main() -> None:
     fig_scope()
     app_numbers()
     examples(c23)
-    fig_attrs()
-    fig_boundary_detail(c22, c23)
-    fig_auc_similarity(c23)
-    fig_calibration(c23, c24)
-    fig_extra(c23)
+    if not TALK:  # 質問用の図は、論文用だけ作る
+        fig_attrs()
+        fig_boundary_detail(c22, c23)
+        fig_auc_similarity(c23)
+        fig_calibration(c23, c24)
+        fig_extra(c23)
     fig_duration()
     fig_roc(c23)
     fig_horizon(c23)
@@ -820,7 +837,8 @@ def main() -> None:
     fig_baselines(c22, c23)
     fig_holdout(c23, c24)
     t = pd.DataFrame(NUMS)
-    t.to_csv(TAB / "31_slide_numbers.csv", index=False, encoding="utf-8-sig")
+    if not TALK:
+        t.to_csv(TAB / "31_slide_numbers.csv", index=False, encoding="utf-8-sig")
     pd.set_option("display.width", 200)
     print(t.assign(値=t["値"].round(4)).to_string(index=False))
 
