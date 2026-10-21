@@ -25,6 +25,10 @@
 
 詳細は Yamamoto/report.md を参照してください。
 
+- 部屋単位・7日以内の掲載終了しやすさの分析と、その発表スライドの図(Yamamoto/room_level/)
+
+詳細は Yamamoto/room_level/README.md を参照してください。
+
 ## ディレクトリ
 
 3semi/
@@ -36,7 +40,8 @@
 │  ├─ analyze.py
 │  ├─ output/
 │  ├─ tables/
-│  └─ report.md
+│  ├─ report.md
+│  └─ room_level/        部屋単位・7日以内の分析(analysis/、figures/、summary_tables/)
 └─ README.md
 
 元のTSVおよび分析用の一時データはGitHubには含めません。

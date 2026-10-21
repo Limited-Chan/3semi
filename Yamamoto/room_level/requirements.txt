@@ -1,0 +1,8 @@
+numpy>=1.26
+pandas>=2.2
+matplotlib>=3.9
+scipy>=1.13
+lifelines>=0.30
+scikit-learn>=1.5
+joblib>=1.4
+pyarrow>=17
