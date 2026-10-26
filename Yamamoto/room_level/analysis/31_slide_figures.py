@@ -54,15 +54,19 @@ SAVE_DPI = 150  # 保存の細かさ。発表用は大きく映すので 1.5 倍
 # 論文用の図は figures/、発表用は presentation/figures/ に出る。
 TALK = False
 FS = 1.0
-HI, BASE, PALE = "#D55E00", "#7A93AB", "#C8CFD6"
+HI, BASE, PALE = "#1B4F8A", "#8E939B", "#D6D9DE"  # 発表用: 強調=濃い青(スライドの紫と区別する)、比較=灰色(彩度の高い色は使わない)
 
 
 def set_talk(on: bool = True) -> None:
     global TALK, FS, FIG, SAVE_DPI
-    TALK, FS = on, (1.3 if on else 1.0)
+    TALK, FS = on, (1.0 if on else 1.0)
     SAVE_DPI = 225 if on else 150
     if on:
-        plt.rcParams.update({"font.size": 16, "axes.labelsize": 16, "axes.titlesize": 16, "xtick.labelsize": 16, "ytick.labelsize": 16, "legend.fontsize": 15})
+        plt.rcParams.update({"font.size": 12.5, "axes.labelsize": 12.5, "axes.titlesize": 12.5, "xtick.labelsize": 12.5, "ytick.labelsize": 12.5, "legend.fontsize": 12})
+        plt.rcParams.update({"axes.spines.top": True, "axes.spines.right": True, "axes.edgecolor": "#222222", "axes.linewidth": 1.0,
+                             "axes.grid": True, "axes.grid.axis": "y", "grid.color": "#E6E6E6", "grid.linewidth": 0.7,
+                             "xtick.direction": "in", "ytick.direction": "in", "xtick.top": False, "ytick.right": False,
+                             "xtick.major.size": 4, "ytick.major.size": 4, "xtick.major.pad": 7, "ytick.major.pad": 7, "xtick.color": "#222222", "ytick.color": "#222222", "text.color": "#222222"})
         FIG = HERE / "presentation" / "figures"
         FIG.mkdir(parents=True, exist_ok=True)
 NUMS: list[dict] = []
@@ -72,7 +76,17 @@ def note(fig_name: str, item: str, value: float) -> None:
     NUMS.append({"図": fig_name, "項目": item, "値": float(value)})
 
 
+# スライドに貼る幅(px、1920幅のスライド)。図の幅(150dpiでのpx)から引く。どの図も、スライド上で同じ大きさの文字(約30px)になるようにする
+DISPLAY_W = {1664: 1664, 1100: 1590, 1130: 1491, 900: 1118, 1000: 1292, 860: 1094, 700: 765}
+TARGET_PX = 30
+
+
 def new(w: int, h: int, ncols: int = 1, ratios=None):
+    global FS
+    if TALK:
+        pt = TARGET_PX / (DISPLAY_W.get(w, w) / w) * 72 / 150
+        FS = pt / 12.5
+        plt.rcParams.update({"font.size": pt, "axes.labelsize": pt, "axes.titlesize": pt, "xtick.labelsize": pt, "ytick.labelsize": pt, "legend.fontsize": pt * 0.96})
     return plt.subplots(1, ncols, figsize=(w / DPI, h / DPI), gridspec_kw={"width_ratios": ratios} if ratios else None)
 
 
@@ -169,7 +183,7 @@ def fig_duration() -> None:
     if TALK:
         for t, dx, dy in [(7, 6, -9), (30, 6, -10), (90, 6, -10)]:
             b.plot([t], [100 * ended(t)], "o", color=HI, ms=9)
-            b.annotate(f"{t}日: {100 * ended(t):.0f}%", (t, 100 * ended(t)), xytext=(t + dx, 100 * ended(t) + dy), fontsize=17, color=HI)
+            b.annotate(f"{t}日: {100 * ended(t):.0f}%", (t, 100 * ended(t)), xytext=(t + dx, 100 * ended(t) + dy), fontsize=13 * FS, color=HI)
     for t in (7, 30, 90):
         b.plot([t, t], [0, 100 * ended(t)], color="#999999", lw=0.8, ls=":")
         b.plot([0, t], [100 * ended(t)] * 2, color="#999999", lw=0.8, ls=":")
@@ -198,7 +212,7 @@ def fig_roc(c23: pd.DataFrame) -> None:
     ax.fill_between(x, yy, color=HI if TALK else MIDC, alpha=0.16 if TALK else 0.18, lw=0)
     ax.plot(x, yy, color=HI if TALK else DARK, lw=2.6 if TALK else 1.8)
     if TALK:
-        ax.text(0.42, 0.2, f"面積 = AUC\n= {a_:.3f}", fontsize=22, color=HI)
+        ax.text(0.42, 0.2, f"面積 = AUC\n= {a_:.3f}", fontsize=17 * FS, color=HI)
     ax.plot([0, 1], [0, 1], color="#777777", ls="--", lw=1.0)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -370,7 +384,7 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
     b.set_xticks([0, 1])
     b.set_xticklabels(["2023年", "2024年1〜3月"])
     b.set_ylabel("AUC(全物件)")
-    b.legend(loc="upper right", fontsize=10.5 * FS if not TALK else 14, ncol=2, columnspacing=1.0, handletextpad=0.4)
+    b.legend(loc="upper right", fontsize=10.5 * FS if not TALK else 11.5 * FS, ncol=2, columnspacing=1.0, handletextpad=0.4)
     fig.tight_layout()
     save(fig, "31c2_levels_auc.png")
 
@@ -403,7 +417,7 @@ def fig_boundary(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     a.set_xlim(5, 30)
     a.set_ylim(0, 3.2)
     a.set_xticks([5, 10, 15, 20, 25, 30])
-    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)" if not TALK else "線: 7日以内の確率が何%以上を「上」にするか", fontsize=12 * FS if not TALK else 16)
+    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)" if not TALK else "線: 7日以内の確率が何%以上を「上」にするか", fontsize=12 * FS if not TALK else 12.5 * FS)
     a.set_ylabel("効き目(100組あたり)" if not TALK else "効き目")
     a.legend(loc="upper right")
     fig.tight_layout()
@@ -464,6 +478,9 @@ def fig_result2023(c23: pd.DataFrame) -> None:
     b.set_yticks(range(2))
     b.set_yticklabels(list(ws))
     b.set_xlim(0, 9)
+    if TALK:
+        b.grid(axis="x", visible=True)
+        b.grid(axis="y", visible=False)
     b.set_ylim(-0.6, 1.6)
     b.set_xlabel("高と低の差(ポイント)")
     panel(b, "(b)")
@@ -522,12 +539,15 @@ def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     for i, (k, gap, lo, hi_) in enumerate(rows):
         ax.barh(i, gap, 0.6, color=(HI if k == "今回の方法" else BASE) if TALK else MIDC)
         if TALK and k in ("今回の方法", "3つの条件を組み合わせた集計"):
-            ax.text(hi_ + 0.2, i, f"{gap:+.1f}", va="center", fontsize=17, color=HI if k == "今回の方法" else "#333333")
+            ax.text(hi_ + 0.2, i, f"{gap:+.1f}", va="center", fontsize=13 * FS, color=HI if k == "今回の方法" else "#333333")
         dot_ci(ax, i, gap, lo, hi_, marker="none", color="#222222", vertical=False)
     ax.set_yticks(range(len(rows)))
     ax.set_yticklabels([r[0] for r in rows])
     ax.axvline(0, color="#222222", lw=0.8)
-    ax.set_xlim(-1.5, 10 if TALK else 9)
+    ax.set_xlim(-1.5, 11.5 if TALK else 9)
+    if TALK:
+        ax.grid(axis="x", visible=True)
+        ax.grid(axis="y", visible=False)
     ax.set_xlabel("高と低の差(ポイント)")
     fig.tight_layout()
     save(fig, "31e_baselines.png")
@@ -573,10 +593,10 @@ def fig_scope() -> None:
     a.set_xlim(-0.6, 5.0)
     a.set_ylim(0.49, 0.60)
     a.set_xticks(xs)
-    a.set_xticklabels([n for n, _ in items], fontsize=(10.5 * FS if not TALK else 12.5))
+    a.set_xticklabels([n for n, _ in items], fontsize=(10.5 * FS if not TALK else 11 * FS))
     a.set_ylabel("AUC")
     if TALK:
-        a.set_xlabel("学習に使った地域\n(左の3つは国分寺市を含み、右の2つは含まない)", fontsize=13)
+        a.set_xlabel("学習に使った地域\n(左の3つは国分寺市を含み、右の2つは含まない)", fontsize=11 * FS)
     fig.tight_layout()
     save(fig, "31n_scope.png")
 
