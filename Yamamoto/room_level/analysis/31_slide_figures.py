@@ -417,8 +417,8 @@ def fig_boundary(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     a.set_xlim(5, 30)
     a.set_ylim(0, 3.2)
     a.set_xticks([5, 10, 15, 20, 25, 30])
-    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)" if not TALK else "線: 7日以内の確率が何%以上を「上」にするか", fontsize=12 * FS if not TALK else 12.5 * FS)
-    a.set_ylabel("効き目(100組あたり)" if not TALK else "効き目")
+    a.set_xlabel("線(7日以内の確率が何%以上を上のグループにするか)" if not TALK else "閾値: 7日以内の確率が何%以上を「高」にするか", fontsize=12 * FS if not TALK else 12.5 * FS)
+    a.set_ylabel("効き目(100組あたり)" if not TALK else "上と下の差\n(100組あたり)")
     a.legend(loc="upper right")
     fig.tight_layout()
     save(fig, "31g_boundary.png")
@@ -475,9 +475,11 @@ def fig_result2023(c23: pd.DataFrame) -> None:
     for i, (n, (e, l_, h_)) in enumerate(ws.items()):
         b.barh(i, e, 0.5, color=BASE if TALK else MIDC)
         dot_ci(b, i, e, l_, h_, marker="none", color="#222222", vertical=False)
+        if TALK:
+            b.text(h_ + 0.2, i, f"{e:+.1f}", va="center", fontsize=13 * FS, color="#222222")
     b.set_yticks(range(2))
     b.set_yticklabels(list(ws))
-    b.set_xlim(0, 9)
+    b.set_xlim(0, 10 if TALK else 9)
     if TALK:
         b.grid(axis="x", visible=True)
         b.grid(axis="y", visible=False)
