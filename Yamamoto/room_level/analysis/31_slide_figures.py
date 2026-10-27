@@ -287,8 +287,10 @@ def fig_horizon(c23: pd.DataFrame) -> None:
         a.set_xticks(range(3))
         a.set_xticklabels(["7日", "14日", "30日"])
         a.set_ylabel(("AUC" if ylab.startswith("AUC") else "上位30%÷残り\n(倍)") if TALK else ylab)
-    panel(ax[0], "(a)")
-    panel(ax[1], "(b)")
+    panel(ax[0], "(a) 似た物件どうしのAUC" if TALK else "(a)")
+    panel(ax[1], "(b) 上位30%の終了率 ÷ 残りの終了率" if TALK else "(b)")
+    if TALK:
+        ax[0].text(2.45, 0.503, "ランダム(0.5)", ha="right", va="bottom", fontsize=11 * FS, color="#555555")
     fig.tight_layout()
     save(fig, "31b_horizon.png")
 
