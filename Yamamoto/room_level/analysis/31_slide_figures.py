@@ -191,10 +191,60 @@ def fig_duration() -> None:
     b.set_ylim(0, 100)
     b.set_xticks([0, 30, 60, 90, 120, 150, 180] if TALK else [0, 7, 30, 60, 90, 120, 150, 180])
     b.set_xlabel("掲載を始めてからの日数")
-    b.set_ylabel("終わった割合(%)" if TALK else "終わった物件の割合(%)")
+    b.set_ylabel("掲載終了率(%)" if TALK else "終わった物件の割合(%)")
     panel(b, "(b)")
     fig.tight_layout()
     save(fig, "31a_duration.png")
+
+
+# ---------- 31j 掲載日数の中央値と平均値、条件別の中央値 ----------
+def fig_duration_stats() -> None:
+    d = load_prepared(ROOT / "data" / "prepared" / "kokubunji_raw.parquet")
+    s = d[d["start_year"].between(2020, 2023) & d["valid_complete_duration"]].copy()
+    dur = s["duration"].to_numpy(float)
+    med, mean = float(np.median(dur)), float(dur.mean())
+    note("31j", "件数", len(s))
+    note("31j", "中央値(日)", med)
+    note("31j", "平均(日)", mean)
+    fig, ax = new(1664, 470, 3, [1.5, 1, 1.25])
+    a = ax[0]
+    edges = list(range(0, 190, 10)) + [10**6]
+    cnt, _ = np.histogram(dur, bins=edges)
+    a.bar(np.arange(len(cnt)) * 10 + 5, 100 * cnt / cnt.sum(), 9, color=BASE if TALK else MIDC)
+    a.axvline(med, color=HI if TALK else DARK, lw=2.8, label=f"中央値 {med:.0f}日")
+    a.axvline(mean, color="#222222", lw=2.4, ls="--", label=f"平均 {mean:.0f}日")
+    a.legend(loc="upper right", handlelength=1.6)
+    a.set_xlim(0, 190)
+    a.set_xticks([0, 60, 120, 180])
+    a.set_xticklabels(["0", "60", "120", "180〜"])
+    a.set_xlabel("掲載日数(日)")
+    a.set_ylabel("割合(%)")
+    panel(a, "(a) 掲載日数の分布")
+
+    def bars(a, groups: pd.Series, labels: list[str], title: str, xlabel: str, name: str) -> None:
+        m = s.groupby(groups, observed=True)["duration"].median()
+        for k, v in zip(labels, m.to_numpy()):
+            note("31j", f"{name} {k} 中央値(日)", v)
+        a.bar(range(len(m)), m.to_numpy(), 0.7, color=BASE if TALK else MIDC)
+        a.axhline(med, color=HI if TALK else DARK, lw=1.8, ls="--", label=f"全体 {med:.0f}日")
+        for i, v in enumerate(m.to_numpy()):
+            a.text(i, min(v * 0.5, 14), f"{v:.0f}", ha="center", va="center", color="white", fontweight="bold", fontsize=13 * FS)
+        a.set_xticks(range(len(m)))
+        a.set_xticklabels(labels, fontsize=12 * FS)
+        a.set_xlabel(xlabel)
+        a.set_ylim(0, 72)
+        panel(a, title)
+
+    labs_age = ["20年\n未満", "20〜\n30年", "30年\n以上"]
+    ab = pd.cut(s["age"], [-1, 20, 30, 200], right=False, labels=labs_age)
+    bars(ax[1], ab, labs_age, "(b) 築年数別の中央値", "築年数(年)", "築年数")
+    ax[1].set_ylabel("掲載日数の中央値(日)")
+    labs_rent = ["〜5", "5〜\n7", "7〜\n9", "9〜\n11", "11〜"]
+    rb = pd.cut(s["rent"], [0, 50000, 70000, 90000, 110000, 1e9], labels=labs_rent)
+    bars(ax[2], rb, labs_rent, "(c) 家賃別の中央値", "家賃(万円)", "家賃")
+    ax[1].legend(loc="upper left", handlelength=1.6)
+    fig.tight_layout()
+    save(fig, "31j_duration_stats.png")
 
 
 # ---------- 31h ROC曲線 ----------
@@ -286,9 +336,9 @@ def fig_horizon(c23: pd.DataFrame) -> None:
         a.set_ylim(*ylim)
         a.set_xticks(range(3))
         a.set_xticklabels(["7日", "14日", "30日"])
-        a.set_ylabel(("AUC" if ylab.startswith("AUC") else "上位30%÷残り\n(倍)") if TALK else ylab)
+        a.set_ylabel(("AUC" if ylab.startswith("AUC") else "倍率(倍)") if TALK else ylab)
     panel(ax[0], "(a) 似た物件どうしのAUC" if TALK else "(a)")
-    panel(ax[1], "(b) 上位30%の終了率 ÷ 残りの終了率" if TALK else "(b)")
+    panel(ax[1], "(b) 上位30%の掲載終了率は残りの何倍か" if TALK else "(b)")
     if TALK:
         ax[0].text(2.45, 0.503, "ランダム(0.5)", ha="right", va="bottom", fontsize=11 * FS, color="#555555")
     fig.tight_layout()
@@ -355,12 +405,12 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
         a.set_xticklabels(labs)
         a.set_ylim(0, 30)
         a.set_title(pl, loc="left", fontsize=12 * FS)
-    ax[0].set_ylabel("終わった割合(%)" if TALK else "7日以内に終わった割合(%)")
+    ax[0].set_ylabel("掲載終了率(%)" if TALK else "7日以内に終わった割合(%)")
     fig.tight_layout(w_pad=3.0)
     fig.subplots_adjust(bottom=0.36 if TALK else 0.2)
     save(fig, "31c1_levels_rates.png")
 
-    rows = [("分けない(確率そのまま)", "o", None), ("3グループ版", "s", cuts["3グループ版"]), ("2グループ版", "^", cuts["2グループ版"]), ("2グループ版(15%)", "D", [T])]
+    rows = [("分けない(確率そのまま)", "o", None), ("3グループ版", "s", cuts["3グループ版"]), ("2グループ版(比較用)", "^", cuts["2グループ版"]), ("2グループ版(15%・採用)", "D", [T])]
     fig, b = new(900, 450)
     offs = [-0.27, -0.09, 0.09, 0.27]
     for i, (d, yname) in enumerate(sets):
@@ -471,7 +521,7 @@ def fig_result2023(c23: pd.DataFrame) -> None:
     a.set_xticks(range(3))
     a.set_xticklabels(["低", "全体", "高"])
     a.set_ylim(0, 20)
-    a.set_ylabel("終わった割合(%)" if TALK else "7日以内に終わった割合(%)")
+    a.set_ylabel("掲載終了率(%)" if TALK else "7日以内に終わった割合(%)")
     panel(a, "(a)")
     b = ax[1]
     for i, (n, (e, l_, h_)) in enumerate(ws.items()):
@@ -493,7 +543,7 @@ def fig_result2023(c23: pd.DataFrame) -> None:
 
 
 # ---------- 31e 偶然か、簡単な目安か(25と同じ計算、同じ乱数) ----------
-def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
+def baseline_rows(c22: pd.DataFrame, c23: pd.DataFrame) -> list:
     rng = np.random.default_rng(20261020)
     edges = [0, 7, 14, 21, 30, 45, 60, 90, 120, 10_000]
 
@@ -538,7 +588,11 @@ def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
         note("31e", f"{k} 差(ポイント)", gap)
         note("31e", f"{k} 95%区間 下", lo)
         note("31e", f"{k} 95%区間 上", hi_)
-    rows = rows[::-1]
+    return rows[::-1]
+
+
+def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
+    rows = baseline_rows(c22, c23)
     fig, ax = new(1000, 480)
     for i, (k, gap, lo, hi_) in enumerate(rows):
         ax.barh(i, gap, 0.6, color=(HI if k == "今回の方法" else BASE) if TALK else MIDC)
@@ -573,10 +627,53 @@ def fig_holdout(c23: pd.DataFrame, c24: pd.DataFrame) -> None:
     a.set_xticks([0, 1])
     a.set_xticklabels([f"2023年\n(n={len(c23):,})", f"2024年1〜3月\n(n={len(c24):,})"])
     a.set_ylim(0, 30)
-    a.set_ylabel("終わった割合(%)" if TALK else "7日以内に終わった割合(%)")
+    a.set_ylabel("掲載終了率(%)" if TALK else "7日以内に終わった割合(%)")
     a.legend(loc="upper left")
     fig.tight_layout()
     save(fig, "31f_holdout.png")
+
+
+# ---------- 31k 確かめ: 単純な分類との比較(2023年)と、新しいデータ(2024年1〜3月) ----------
+def fig_checks(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
+    rows = baseline_rows(c22, c23)  # 31e と同じ計算(同じ乱数)
+    short = {"3つの条件を組み合わせた集計": "3条件の集計", "ランダムに分けた場合": "ランダム"}
+    fig, ax = new(1664, 500, 2, [1.45, 0.85])
+    a = ax[0]
+    for i, (k, gap, lo, hi_) in enumerate(rows):
+        a.barh(i, gap, 0.62, color=(HI if k == "今回の方法" else BASE) if TALK else MIDC)
+        if TALK and k in ("今回の方法", "3つの条件を組み合わせた集計"):
+            a.text(hi_ + 0.2, i, f"{gap:+.1f}", va="center", fontsize=13 * FS, color=HI if k == "今回の方法" else "#333333")
+        dot_ci(a, i, gap, lo, hi_, marker="none", color="#222222", vertical=False)
+    a.set_yticks(range(len(rows)))
+    a.set_yticklabels([short.get(r[0], r[0]) for r in rows])
+    a.axvline(0, color="#222222", lw=0.8)
+    a.set_xlim(-1.5, 11.5)
+    if TALK:
+        a.grid(axis="x", visible=True)
+        a.grid(axis="y", visible=False)
+    a.set_xlabel("高と低の差(ポイント、2023年)")
+    panel(a, "(a) 単純な分類との比較")
+    b = ax[1]
+    for i, (d, nm) in enumerate([(c23, "2023年"), (c24, "2024年\n1〜3月")]):
+        p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
+        hi = p >= T
+        lo_r, hi_r = 100 * y[~hi].mean(), 100 * y[hi].mean()
+        note("31k", f"{nm.replace(chr(10), '')} 低 終了率(%)", lo_r)
+        note("31k", f"{nm.replace(chr(10), '')} 高 終了率(%)", hi_r)
+        note("31k", f"{nm.replace(chr(10), '')} 倍率", hi_r / lo_r)
+        note("31k", f"{nm.replace(chr(10), '')} 高の割合(%)", 100 * hi.mean())
+        b.bar(i - 0.2, lo_r, 0.36, color=PALE if TALK else LIGHT, label="低" if i == 0 else None)
+        b.bar(i + 0.2, hi_r, 0.36, color=HI if TALK else DARK, label="高" if i == 0 else None)
+        b.text(i - 0.2, lo_r + 0.5, f"{lo_r:.1f}", ha="center", fontsize=12 * FS)
+        b.text(i + 0.2, hi_r + 0.5, f"{hi_r:.1f}", ha="center", fontsize=12 * FS)
+    b.set_xticks([0, 1])
+    b.set_xticklabels(["2023年", "2024年\n1〜3月"])
+    b.set_ylim(0, 31)
+    b.set_ylabel("掲載終了率(%)")
+    b.legend(loc="upper left")
+    panel(b, "(b) 新しいデータでも")
+    fig.tight_layout()
+    save(fig, "31k_checks.png")
 
 
 # ---------- 国分寺市と多摩地域: 学習する範囲を変えても、国分寺市での当たり具合は同じか(15番の表を図にする) ----------
@@ -862,6 +959,7 @@ def main() -> None:
         fig_calibration(c23, c24)
         fig_extra(c23)
     fig_duration()
+    fig_duration_stats()
     fig_roc(c23)
     fig_horizon(c23)
     fig_levels(c22, c23, c24)
@@ -869,6 +967,7 @@ def main() -> None:
     fig_result2023(c23)
     fig_baselines(c22, c23)
     fig_holdout(c23, c24)
+    fig_checks(c22, c23, c24)
     t = pd.DataFrame(NUMS)
     if not TALK:
         t.to_csv(TAB / "31_slide_numbers.csv", index=False, encoding="utf-8-sig")
