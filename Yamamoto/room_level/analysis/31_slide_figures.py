@@ -272,8 +272,8 @@ def fig_roc(c23: pd.DataFrame) -> None:
     ax.set_yticks(ticks)
     ax.set_xticklabels(["0", "0.25", "0.5", "0.75", "1"])
     ax.set_yticklabels(["0", "0.25", "0.5", "0.75", "1"])
-    ax.set_xlabel("偽陽性率(FPR)")
-    ax.set_ylabel("真陽性率(TPR)")
+    ax.set_xlabel("終わらない物件を、誤って\n「終わる」と予測した割合" if TALK else "偽陽性率(FPR)")
+    ax.set_ylabel("終わった物件を、予測で\n当てられた割合" if TALK else "真陽性率(TPR)")
     fig.tight_layout()
     save(fig, "31h_roc.png")
 
