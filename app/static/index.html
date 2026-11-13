@@ -221,17 +221,17 @@ dialog.full{position:fixed;inset:0;margin:0 auto;width:100%;max-width:480px;heig
    LISTINGS: 画面確認用の架空の物件。level(終わりやすい/終わりにくい)は表示例として手で付けたもので、モデルの出力ではない。 */
 const STATS = {"1K|10〜20年|6":[3000,0,5,26],"1K|10年未満|6":[1387,0,9,27],"1K|20〜30年|4":[1207,14,41,97],"1K|30〜40年|4":[1003,15,49,113],"1R|30〜40年|4":[858,16,50,113],"1K|20〜30年|6":[644,9,31,65],"1K|10〜20年|4":[596,9,32,72],"1LDK|10年未満|10":[594,5,13,31],"1LDK|10年未満|8":[555,5,13,32],"1K|10年未満|8":[555,2,14,35],"1R|20〜30年|4":[484,15,44,91],"2DK|30〜40年|6":[402,20,47,93],"1R|10年未満|6":[303,3,15,53],"1R|30〜40年|2":[295,28,70,175],"1LDK|10〜20年|8":[295,8,20,50],"2LDK|10年未満|12":[265,2,9,25],"1K|10〜20年|8":[244,11,32,64],"2DK|30〜40年|8":[238,7,32,65],"1K|30〜40年|2":[227,40,93,180],"2LDK|10年未満|10":[225,1,8,27],"1LDK|10年未満|12":[224,4,12,30],"1K|30〜40年|6":[201,13,42,98],"1R|10年未満|4":[194,24,67,125],"2DK|20〜30年|6":[192,17,52,93],"2DK|20〜30年|8":[187,0,19,48],"1DK|10年未満|8":[173,15,35,73],"1LDK|10〜20年|10":[170,2,13,30],"2LDK|10年未満|14":[169,5,13,29],"1R|10〜20年|6":[164,10,26,53],"1R|10年未満|8":[159,2,12,34],"1R|20〜30年|6":[147,13,43,104],"1R|20〜30年|2":[146,21,53,125],"2LDK|10〜20年|12":[132,4,13,29],"3DK|30〜40年|8":[122,12,30,61],"1K|40年以上|4":[121,13,52,112],"2LDK|10〜20年|10":[121,3,16,40],"3DK|30〜40年|10":[118,8,21,59],"1DK|30〜40年|4":[116,13,43,89],"2LDK|30〜40年|12":[101,12,21,33],"1DK|30〜40年|6":[100,9,25,75]};
 const LISTINGS = [
- {id:1, layout:'1K',  age:7,  rent:7.2, mgmt:5000, area:22, floor:3, st:[['西国分寺駅',6]],  days:2,  level:'hi', hue:340},
- {id:2, layout:'1K',  age:25, rent:5.0, mgmt:3000, area:20, floor:1, st:[['国分寺駅',15]],    days:9,  level:'lo', hue:210},
- {id:3, layout:'1K',  age:15, rent:6.5, mgmt:4000, area:21, floor:2, st:[['国分寺駅',9]],     days:1,  level:'hi', hue:20},
- {id:4, layout:'1LDK',age:4,  rent:11.2,mgmt:8000, area:38, floor:5, st:[['国分寺駅',5]],     days:4,  level:'hi', hue:280},
- {id:5, layout:'1LDK',age:18, rent:9.0, mgmt:0,    area:34, floor:2, st:[['西国分寺駅',12]], days:21, level:'lo', hue:160},
- {id:6, layout:'1R',  age:35, rent:3.8, mgmt:2000, area:16, floor:1, st:[['国立駅',14]],     days:30, level:'lo', hue:30},
- {id:7, layout:'2LDK',age:6,  rent:13.0,mgmt:9000, area:52, floor:4, st:[['国立駅',8]],       days:6,  level:'hi', hue:250},
- {id:8, layout:'1K',  age:3,  rent:8.8, mgmt:6000, area:25, floor:6, st:[['武蔵小金井駅',7]],days:3,  level:'hi', hue:320},
- {id:9, layout:'2DK', age:33, rent:7.2, mgmt:3000, area:40, floor:2, st:[['恋ヶ窪駅',10]],   days:18, level:'lo', hue:190},
- {id:10,layout:'1DK', age:12, rent:6.8, mgmt:3500, area:28, floor:3, st:[['国分寺駅',11]],   days:12, level:'lo', hue:60},
- {id:11,layout:'1LDK',age:28, rent:8.5, mgmt:4000, area:36, floor:2, st:[['西国分寺駅',16]], days:40, level:'lo', hue:120},
+ {id:1, layout:'1K',  age:7,  rent:7.2, mgmt:5000, area:22, floor:3, st:[['西国分寺駅',6]],  days:12,  level:'unknown', hue:340},
+ {id:2, layout:'1K',  age:25, rent:5.0, mgmt:3000, area:20, floor:1, st:[['国分寺駅',15]],    days:12,  level:'unknown', hue:210},
+ {id:3, layout:'1K',  age:15, rent:6.5, mgmt:4000, area:21, floor:2, st:[['国分寺駅',9]],     days:12,  level:'unknown', hue:20},
+ {id:4, layout:'1LDK',age:4,  rent:11.2,mgmt:8000, area:38, floor:5, st:[['国分寺駅',5]],     days:12,  level:'unknown', hue:280},
+ {id:5, layout:'1LDK',age:18, rent:9.0, mgmt:0,    area:34, floor:2, st:[['西国分寺駅',12]], days:12, level:'unknown', hue:160},
+ {id:6, layout:'1R',  age:35, rent:3.8, mgmt:2000, area:16, floor:1, st:[['国立駅',14]],     days:12, level:'unknown', hue:30},
+ {id:7, layout:'2LDK',age:6,  rent:13.0,mgmt:9000, area:52, floor:4, st:[['国立駅',8]],       days:12,  level:'unknown', hue:250},
+ {id:8, layout:'1K',  age:3,  rent:8.8, mgmt:6000, area:25, floor:6, st:[['武蔵小金井駅',7]],days:12,  level:'unknown', hue:320},
+ {id:9, layout:'2DK', age:33, rent:7.2, mgmt:3000, area:40, floor:2, st:[['恋ヶ窪駅',10]],   days:12, level:'unknown', hue:190},
+ {id:10,layout:'1DK', age:35, rent:6.8, mgmt:3500, area:28, floor:3, st:[['国分寺駅',11]],   days:12, level:'unknown', hue:60},
+ {id:11,layout:'1LDK',age:18, rent:8.5, mgmt:4000, area:36, floor:2, st:[['西国分寺駅',16]], days:12, level:'unknown', hue:120},
 ];
 const STATIONS = ['国分寺駅','西国分寺駅','恋ヶ窪駅','国立駅','武蔵小金井駅'];
 const LAYOUTS = ['1R','1K','1DK','1LDK','2DK','2LDK'];
@@ -251,8 +251,9 @@ const ICON = {
   user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>',
 };
 const badge = lv => lv==='hi'
-  ? `<span class="badge hi">${ICON.up}終わりやすい</span>`
-  : `<span class="badge lo">${ICON.down}終わりにくい</span>`;
+  ? `<span class="badge hi">${ICON.up}掲載終了リスク：高</span>`
+  : lv==='lo' ? `<span class="badge lo">${ICON.down}掲載終了リスク：低</span>`
+  : `<span class="badge lo">集計対象外</span>`;
 const photo = p => `<div class="photo" style="background:linear-gradient(135deg,hsl(${p.hue} 35% 62%),hsl(${(p.hue+40)%360} 40% 48%))" aria-hidden="true">${esc(p.layout)}</div>`;
 const money = p => p.rent.toFixed(1).replace(/\.0$/,'');
 
@@ -326,7 +327,7 @@ function renderNav(cur){
     <a href="#/my" ${cur==='my'?'aria-current="page"':''}>${ICON.user}マイページ</a>
   </nav>`;
 }
-const demoBar = () => state.demoOpen ? `<div class="demo" role="note"><span>画面イメージです。物件と「終わりやすい・終わりにくい」の印は例です。</span><button data-demo="close" aria-label="この案内を閉じる">閉じる</button></div>` : '';
+const demoBar = () => state.demoOpen ? `<div class="demo" role="note"><span>物件情報はデモ用です。掲載終了リスクの高・低は研究の過去実績から自動計算しています。</span><button data-demo="close" aria-label="この案内を閉じる">閉じる</button></div>` : '';
 
 function renderList(){
   const all = LISTINGS.filter(p=>passFilter(p,true));
@@ -392,11 +393,11 @@ function renderDetail(id){
     </div></div>
     <div class="dr"><div class="panel">
       <h2>終わりやすさの目安<button class="info" data-open="help" aria-label="目安についての説明を見る">${ICON.info}</button></h2>
-      <div class="mark ${p.level==='lo'?'lo':''}"><div class="row">${badge(p.level)}<span class="t">${p.level==='hi'?'1週間以内に掲載が終わりやすい物件です。':'1週間以内に掲載が終わりにくい物件です。'}</span></div>
+      <div class="mark ${p.level==='lo'?'lo':''}"><div class="row">${badge(p.level)}<span class="t">${p.level==='unknown'?'過去実績が不足しています。':`過去の同条件では、掲載12日目から7日以内に終了した割合は${(p.historicalRisk*100).toFixed(1)}%です。`}</span></div>
         <p class="note">掲載が終わっても、成約したとは限りません。</p>
         <details class="more"><summary>くわしく見る</summary>
           ${p.level==='hi'?'<p>15%は分類の境界であり、実際に終了する確率が一律85%という意味でもありません。</p>':''}
-          <p>この画面の高・低は例示用のラベルです。研究モデルの推論結果ではありません。実際の分類は予測確率15%を境界にする設計です。</p></details></div>
+          <p>画面の高・低は、掲載12日目から7日以内に終了した同条件物件の過去割合で区分しています。研究モデルの個別予測ではありません。</p></details></div>
       <div class="rec"><h3>同じ条件の過去の実績</h3>
         ${s?`<p class="key">半分の物件が、${s[2]<1?'掲載当日':`約${s[2]}日`}までに終わりました。</p>
           <details class="more"><summary>グラフと説明を見る</summary>
@@ -462,6 +463,26 @@ async function loadHistorical(id){
   }catch(e){if(output.isConnected)output.textContent='集計APIに接続できませんでした。サーバーから起動してください。';}
 }
 
+async function loadRiskLabels() {
+  const payload={properties:LISTINGS.map(p=>({id:p.id,layout:p.layout,age:p.age,rent_man:p.rent}))};
+  try {
+    const res=await fetch('/api/historical-risks',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error(String(res.status));
+    const body=await res.json();
+    const byId=new Map(body.results.map(x=>[x.id,x]));
+    for(const p of LISTINGS) {
+      const result=byId.get(p.id);
+      p.level=result?.level||'unknown';
+      p.historicalRisk=result?.risk??null;
+    }
+    rerender();
+  } catch(e) {
+    console.error('過去実績の分類APIに接続できません',e);
+    toast('過去実績を取得できません。サーバーの起動を確認してください。');
+  }
+}
+
 /* ===== ルーティング ===== */
 function route(){
   const h = location.hash || '#/';
@@ -510,6 +531,7 @@ document.addEventListener('change', e=>{
     document.querySelector(`${inSide?'.side ':'#filterDlg '}[data-sel="${k}"]`)?.focus(); }
 });
 route();
+loadRiskLabels();
 </script>
 </body>
 </html>
