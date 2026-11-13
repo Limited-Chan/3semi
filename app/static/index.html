@@ -46,7 +46,7 @@ input[type=checkbox]{width:auto;min-height:auto;accent-color:var(--wine)}
 .meter{height:7px;background:#f1e6eb;border-radius:10px;overflow:hidden;margin:8px 0 12px}
 .meter i{height:100%;display:block;background:var(--wine);border-radius:10px}
 .meta{font-size:12px;color:#626a77;display:grid;gap:3px}.meta strong{color:#273244}
-.tile-buttons{display:flex;gap:8px;margin-top:auto;padding-top:16px}.btn{border:0;border-radius:10px;background:var(--wine);color:#fff;font-weight:800;min-height:44px;padding:9px 16px;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.property-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:17px;padding:12px;background:#faf7f9;border-radius:12px}.property-facts div{min-width:0}.property-facts small{display:block;color:var(--muted);font-size:11px}.property-facts strong{display:block;font-size:14px;overflow-wrap:anywhere}.tile-buttons{display:flex;gap:8px;margin-top:auto;padding-top:16px}.btn{border:0;border-radius:10px;background:var(--wine);color:#fff;font-weight:800;min-height:44px;padding:9px 16px;display:inline-flex;align-items:center;justify-content:center;text-align:center}
 .btn:hover{background:var(--wine-dark)}.btn.alt{background:#fff;color:var(--wine);border:1px solid #dcaebe}.btn.alt:hover{background:var(--pink)}
 .tile-buttons .btn:first-child{flex:1}.tile-buttons .save{width:44px;flex:none;font-size:20px}
 .empty{background:#fff;border:1px dashed #c9ced6;border-radius:16px;text-align:center;padding:42px 18px;color:var(--muted)}
@@ -67,7 +67,7 @@ footer{max-width:1130px;margin:auto;padding:22px 20px 32px;color:#7a8190;font-si
 </style>
 </head>
 <body>
-<header><div class="header-inner"><a class="logo" href="#/">すぐ埋まる？ナビ<small>国分寺市の賃貸掲載データから考える</small></a><nav id="nav" aria-label="メインメニュー"></nav></div></header>
+<header><div class="header-inner"><a class="logo" href="#/">すぐ埋まる？ナビ<small>お部屋探しをサポート</small></a><nav id="nav" aria-label="メインメニュー"></nav></div></header>
 <main id="app" aria-live="polite"></main>
 <footer>研究で使用したLIFULL HOME'Sの過去掲載データを条件別に集計。現在の空室情報・物件広告・成約情報ではありません。</footer>
 <script>
@@ -97,8 +97,8 @@ function filtered(){
  return a.sort((x,y)=>state.sort==='rate'?y.day12_next7_rate-x.day12_next7_rate:state.sort==='median'?x.median_days-y.median_days:state.sort==='rent'?parseInt(x.rent_band)-parseInt(y.rent_band):y.count-x.count);
 }
 function card(g){
- return '<article class="tile"><div class="tile-top"><div><h3>'+esc(g.layout)+'・築'+esc(g.age_band)+'</h3><div class="price">家賃 '+esc(g.rent_band)+'万円</div></div>'+badge(g)+'</div>'+
- '<p class="small" style="margin:16px 0 0">間取り '+esc(g.layout)+'　｜　築'+esc(g.age_band)+'　｜　家賃 '+esc(g.rent_band)+'万円</p>'+
+ return '<article class="tile"><div class="tile-top"><div><h3>'+esc(g.layout)+'のお部屋</h3></div>'+badge(g)+'</div>'+
+ '<div class="property-facts"><div><small>間取り</small><strong>'+esc(g.layout)+'</strong></div><div><small>築年数</small><strong>'+esc(g.age_band)+'</strong></div><div><small>家賃</small><strong>'+esc(g.rent_band)+'万円</strong></div></div>'+
  '<div class="tile-buttons"><a class="btn" href="#/group/'+g.id+'">分析を見る</a><button type="button" class="btn alt save" data-save="'+g.id+'" aria-label="'+(saved.has(g.id)?'お気に入りから削除':'お気に入りに追加')+'" aria-pressed="'+saved.has(g.id)+'">'+(saved.has(g.id)?'♥':'♡')+'</button></div></article>';
 }
 function home(){
