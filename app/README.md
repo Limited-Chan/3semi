@@ -1,34 +1,48 @@
-# すぐ埋まる？ナビ（研究の実績データ連携デモ）
+# すぐ埋まる？ナビ
+
+利用者提供のHTMLデザインをベースにした、FastAPI接続の研究デモです。
 
 ## 起動
+
 ```bash
-git pull origin main
 cd app
 python -m pip install -r requirements.txt
 python -m uvicorn main:app --reload
 ```
+
 http://127.0.0.1:8000/ を開く。
 
-## フォルダ・構成
-- `static/index.html`: ユーザーが指定したスマホ/PC対応HTMLがデザインの原本。検索、並び替え、詳細、キープ、比較などをJavaScriptで提供。
-- `main.py`: FastAPI。画面配信と掲載終了実績APIを提供。
-- `historical.csv`: 国分寺市・2020〜2023年掲載開始の同条件物件集計（40条件）。GitHubの `Yamamoto/room_level/summary_tables/24_same_condition_duration.csv` に由来。
-- `requirements.txt`: FastAPI・Uvicornなど。
+## 研究モデルを使う方法
 
-## 実装済み機能
-- 11件のサンプル物件（架空）の検索、絞り込み、並び替え。
-- 物件カードと詳細ページ。
-- キープと比較（localStorageで保存）。
-- 研究の過去実績から、**掲載12日目を基準にした次の7日以内の掲載終了割合**を実際のAPIで取得して表示。
-- 上記の実績割合が15%以上なら「高」、未満なら「低」を**APIが自動判定**し、一覧・詳細に表示。
-- `POST /api/historical-risks` 一括取得。
-- `GET /api/historical?layout=1K&age=7&rent_man=7.2` 単件取得。
-- `GET /api/status` 状態確認。
+`Ohori/analysis/07_final_test.py` が学習・出力するモデルを**そのまま使います**。以下のどちらかに、ローカルで生成されたファイルを置いてください。
 
-## 重要
-これは **過去の同条件の集計からリスクを区分する動作版** です。卒研で使った学習済み離散時間ハザードモデルを読み込んだ個別推論ではありません。元データTSVと学習済みモデルはGitHubにないため、`POST /api/predict`（個別モデル推論）は503を返します。
+- `Ohori/results/07_final_test/final_model2_age_layout.joblib`
+- `app/models/final_model2_age_layout.joblib`
 
-比較条件を揃えるためデモ11件の掲載日数は12日目に統一しました。割合は過去の集計に基づくもので、各物件の成約・実際の掲載終了を保証しません。掲載終了は成約とは限りません。元データの再配布は行いません。
+※ 任意の外部ソースから入手した不審なjoblibファイルを読み込まないでください。ファイル配置後はサーバーを再起動します。
 
-### モデルへの切り替え
-元データ `bukken_rent_v1.0.1.tsv` をローカルで用意し、既存の `Yamamoto/room_level/analysis/17_fixed_window_features.py` と `Ohori/src/discrete_model.py` の条件に合わせて学習・保存したモデルを接続する必要があります。
+ファイルがある場合：
+- `POST /api/predict` で既存 `Ohori/src/discrete_model.py` の `predict_horizon_probability` を使い、物件別に7日以内の掲載終了確率を計算。
+- 15%以上＝高、15%未満＝低として画面に表示。
+
+ファイルがない場合：
+- `POST /api/predict` は503を返す。
+- 画面は `POST /api/historical-risks` へ自動切替。国分寺市の過去実績で、高・低を区分する（**個別物件の学習モデル予測ではない**）。
+- `GET /api/historical` で類似条件の過去実績も取得できる。
+
+`GET /api/status` の `model_ready` で、学習済みモデルファイルの存在を確認できます。
+
+## フォルダ
+
+- `static/index.html` — 指定されたオリジナルのレスポンシブHTML。物件一覧・絞り込み・詳細・キープ比較。
+- `main.py` — FastAPI、学習済みModel 2の読み込み、研究データによる予測／集計。
+- `historical.csv` — `Yamamoto/room_level/summary_tables/24_same_condition_duration.csv` と同じ過去実績40条件。
+- `requirements.txt` — アプリ依存ライブラリ。
+
+## 注意
+
+- Web画面に出す11件は架空物件。動作確認用の賃料・駅・間取りなどが設定されています。
+- 過去実績による区分は**全物件を掲載12日目**とみなした比較で、個別予測とは異なります。
+- 学習済みモデルを使う場合、例示物件の掲載開始月は仮に6月として送信しています。実データ入力機能が整うまでは学習モデルの結果も**デモ上の予測**です。
+- 掲載終了は成約を意味しません。
+- GitHubには学習コードはありますが、現在のmainブランチにはjoblibバイナリを含めていません。
