@@ -208,11 +208,13 @@ def analyze_property(request: AnalyzeRequest):
         start_month=request.start_month, city="国分寺市",
         elapsed_day=request.elapsed_day,
     )
+    model_error = None
     try:
         values = _predict_probabilities([prop])
     except Exception as error:
         logger.exception("Property analysis model inference error")
-        raise HTTPException(status_code=500, detail=f"学習済みモデルによる分析に失敗: {type(error).__name__}: {str(error)[:240]}") from error
+        values = None
+        model_error = f"{type(error).__name__}: {str(error)[:180]}"
 
     if values is not None:
         risk = values[0]
@@ -228,11 +230,13 @@ def analyze_property(request: AnalyzeRequest):
     return {
         "mode": "historical", "risk": None, "level": None,
         "heading": "過去の実績を参考に検討",
-        "reason": ("個別予測モデルが未配置です。"
+        "reason": (("学習済みモデルの推論でエラーが発生したため、過去実績のみを表示します。"
+                    if model_error else "個別予測モデルが未配置です。")
                    + ("掲載12日目時点の過去実績は参照できますが、現在の掲載経過日数に対応した予測ではありません。"
                       if history else "一致する条件の十分な過去実績もありません。")),
         "historical": history,
-        "caution": "モデル不在時、過去の条件別割合を個別物件の予測や問い合わせ推奨に置き換えません。",
+        "model_error": model_error,
+        "caution": "モデルが利用できない場合、過去の条件別割合を個別物件の予測や問い合わせ推奨に置き換えません。",
     }
 
 
