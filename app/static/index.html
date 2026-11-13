@@ -324,7 +324,7 @@ function renderNav(cur){
   return `<nav class="nav" aria-label="メイン">
     <a href="#/" ${cur==='list'?'aria-current="page"':''}>${ICON.search.replace('width="20" height="20"','width="24" height="24"')}さがす</a>
     <a href="#/keep" ${cur==='keep'?'aria-current="page"':''}>${ICON.heart}<span>キープ${state.keep.size?`<i>${state.keep.size}</i>`:''}</span></a>
-    <a href="#/my" ${cur==='my'?'aria-current="page"':''}>${ICON.user}マイページ</a>
+    <a href="#/analyze" ${cur==='analyze'?'aria-current="page"':''}>${ICON.clock}物件を分析</a>
   </nav>`;
 }
 const demoBar = () => state.demoOpen ? `<div class="demo" role="note"><span>物件情報はデモ用です。掲載終了リスクの高・低は研究の過去実績から自動計算しています。</span><button data-demo="close" aria-label="この案内を閉じる">閉じる</button></div>` : '';
@@ -347,7 +347,7 @@ function renderList(){
     <div class="n" aria-live="polite"><em>${items.length}</em> 件</div>
     <label><span class="sr">並び替え</span><select class="sort" data-sort>${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${state.sort===k?'selected':''}>${v[0]}</option>`).join('')}</select></label>
   </div>
-  <div class="legend"><b>1週間以内に掲載が終わりやすいかの目安です。</b>掲載が終わっても、成約したとは限りません。 <button data-open="help">くわしく</button></div>
+  <div class="legend"><b>気になる物件を自分で分析したい方へ：</b> <a href="#/analyze" style="color:var(--brand);font-weight:700;text-decoration:underline">物件条件を入力して分析する</a></div>
   ${items.length? `<div class="list">${items.map(card).join('')}</div>`
     : `<div class="empty"><p>条件に合う物件がありません。</p><button data-reset>条件をゆるめる</button></div>`}
   </div></div>
@@ -372,9 +372,71 @@ function renderKeep(){
   ${renderNav('keep')}`;
 }
 
-function renderMy(){
-  return `${demoBar()}<header class="top"><div style="padding:14px 16px 10px"><b style="font-size:16px">マイページ</b></div></header>
-  <div class="empty"><p>マイページは今後の開発対象です。キープした物件は「キープ」から確認できます。</p></div>${renderNav('my')}`;
+function renderAnalyze(){
+  const input=(key,label,value,min,max,step='1')=>`<label style="display:block;margin-bottom:13px;font-weight:600">${label}<input class="field" name="${key}" type="number" min="${min}" max="${max}" step="${step}" required value="${value}" style="display:block;margin-top:5px"></label>`;
+  return `${demoBar()}
+    <header class="top"><div style="padding:16px"><b style="font-size:19px;color:var(--brand)">気になる物件を分析</b><p class="note">物件の条件を入力すると、掲載終了リスクと問い合わせを検討するための情報を確認できます。</p></div></header>
+    <div style="max-width:760px;width:100%;margin:16px auto;padding:0 12px 32px">
+      <section class="panel" style="border-radius:16px;padding:16px">
+        <form id="analysisForm">
+          <label style="display:block;margin-bottom:13px;font-weight:600">間取り
+            <select name="layout" class="field" required style="display:block;margin-top:5px">
+             ${LAYOUTS.map(x=>`<option value="${x}" ${x==='1K'?'selected':''}>${x}</option>`).join('')}
+            </select>
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            ${input('rent_man','家賃（万円）','7.2','0.1','300','0.1')}
+            ${input('age','築年数','7','0','150')}
+            ${input('area','専有面積（㎡）','22','1','1000','0.1')}
+            ${input('walk_distance','駅徒歩（分）','6','0','120')}
+            ${input('elapsed_day','掲載からの日数','12','0','365')}
+            ${input('start_month','掲載開始月','6','1','12')}
+          </div>
+          <label style="display:block;margin-bottom:16px;font-weight:600">最寄駅
+            <select class="field" name="station" required style="display:block;margin-top:5px">
+              ${STATIONS.map(x=>`<option ${x==='西国分寺駅'?'selected':''}>${x}</option>`).join('')}
+            </select>
+          </label>
+          <button type="submit" class="btn" style="width:100%">掲載終了リスクを分析する</button>
+        </form>
+        <div id="analysisResult" style="margin-top:18px" aria-live="polite"></div>
+      </section>
+      <p class="note">※ 公開中の物件情報を自動取得する機能ではありません。物件条件は自分で入力してください。過去の掲載終了は成約を意味しません。</p>
+    </div>
+    ${renderNav('analyze')}`;
+}
+async function analyzeInput(form){
+  const out=document.getElementById('analysisResult');
+  out.textContent='分析中...';
+  const vals=Object.fromEntries(new FormData(form).entries());
+  const data={
+    layout:vals.layout, station:vals.station,
+    rent_man:Number(vals.rent_man), age:Number(vals.age), area:Number(vals.area),
+    walk_distance:Number(vals.walk_distance), elapsed_day:Number(vals.elapsed_day),
+    start_month:Number(vals.start_month)
+  };
+  try{
+    const resp=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(!resp.ok)throw new Error('API応答 '+resp.status);
+    const x=await resp.json(), model=x.mode==='model';
+    const hist=x.historical;
+    const historicalHtml=hist
+      ? `<div class="rec"><h3>近い条件の過去実績</h3><p>同じ間取り・築年数帯・家賃帯の過去 ${hist.count.toLocaleString()}件</p>
+        <p class="key">半数が掲載終了した日：掲載開始から約${hist.median_days_from_start}日</p>
+        <p>掲載12日目時点から次の7日以内に掲載終了した割合：<b>${(hist.day12_next7_rate*100).toFixed(1)}%</b></p>
+        <p class="note">現在の物件の掲載経過日数とは異なる基準で集計した参考値です。</p></div>`
+      : '<div class="rec">同条件の過去集計は100件未満などの理由で表示できません。</div>';
+    const probability=model ? `<p style="font-size:22px;font-weight:800;color:var(--brand);margin:8px 0">${(x.risk*100).toFixed(1)}% <small style="font-size:12px">7日以内の予測掲載終了確率</small></p>` : '';
+    out.innerHTML=`<div class="mark ${x.level==='lo'?'lo':''}">
+       <h2 style="margin:0 0 6px;font-size:18px">${esc(x.heading)}</h2>
+       ${probability}<p style="margin:0">${esc(x.reason)}</p>
+       <p class="note">分析方法：${model?'既存研究の学習済みモデル':'研究で集計した過去の掲載実績のみ（個別予測なし）'}</p>
+       </div>${historicalHtml}
+       <p class="note">${esc(x.caution)}</p>
+       <p class="note">※ 問い合わせをすれば契約できる／問い合わせが必要、という結果を示すものではありません。</p>`;
+  }catch(err){
+    out.textContent='分析に失敗しました。サーバーを起動した状態で再試行してください。';
+  }
 }
 
 function renderDetail(id){
@@ -505,7 +567,7 @@ function route(){
   if(m){ app.className='detail'; app.innerHTML = renderDetail(+m[1]); loadHistorical(+m[1]); window.scrollTo(0,0); document.title='物件の詳細 - すぐ埋まる？ナビ'; return; }
   app.className='';
   if(h==='#/keep'){ app.innerHTML=renderKeep(); document.title='キープ - すぐ埋まる？ナビ'; }
-  else if(h==='#/my'){ app.innerHTML=renderMy(); document.title='マイページ - すぐ埋まる？ナビ'; }
+  else if(h==='#/analyze'){ app.innerHTML=renderAnalyze(); document.title='物件を分析 - すぐ埋まる？ナビ'; }
   else { app.innerHTML=renderList(); document.title='すぐ埋まる？ナビ - 画面イメージ'; }
   window.scrollTo(0, prevDetail ? state.listScroll : 0);
 }
@@ -521,6 +583,13 @@ function toggleKeep(id){
 }
 
 /* ===== イベント ===== */
+document.addEventListener('submit', e=>{
+  if(e.target.id==='analysisForm'){
+    e.preventDefault();
+    analyzeInput(e.target);
+  }
+});
+
 document.addEventListener('click', e=>{
   const t = e.target.closest('[data-keep],[data-level],[data-open],[data-close],[data-back],[data-demo],[data-reset],[data-clear],[data-chip]');
   if(e.target.tagName==='DIALOG'){ e.target.close(); return; }
