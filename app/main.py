@@ -81,9 +81,9 @@ def _data_source():
 def _load_listings_cached(path_str: str, modified_ns: int):
     """Read one local extracted file and reuse the cleaned 2020-2023 data."""
     import pandas as pd
-    from src.data import load_prepared
     if str(OHORI) not in sys.path:
         sys.path.insert(0, str(OHORI))
+    from src.data import load_prepared
     data = load_prepared(path_str)
     if "addr1_2_name" in data.columns:
         data = data[data["addr1_2_name"].astype(str).str.normalize("NFKC").str.strip() == "国分寺市"]
