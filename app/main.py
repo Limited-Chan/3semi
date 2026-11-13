@@ -81,7 +81,7 @@ def status():
 
 @app.post("/api/predict")
 def predict(request: PredictionRequest):
-    raise HTTPException(status_code=503, detail="学習済みモデルが未配置です。デモ画面の高低ラベルは架空の表示です。")
+    raise HTTPException(status_code=503, detail="学習済みモデルが未配置です。現在の高低ラベルは研究の過去実績に基づく区分であり、個別物件の予測モデルではありません。")
 
 
 @app.get("/api/historical")
