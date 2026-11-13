@@ -58,3 +58,18 @@ http://127.0.0.1:8000/ を開く。
 - 学習済みモデルを使う場合、例示物件の掲載開始月は仮に6月として送信しています。実データ入力機能が整うまでは学習モデルの結果も**デモ上の予測**です。
 - 掲載終了は成約を意味しません。
 - GitHubには学習コードはありますが、現在のmainブランチにはjoblibバイナリを含めていません。
+
+## Windowsでモデル読み込み時に500エラーが出る場合
+学習済みjoblibがscikit-learn 1.9.1で作成されている場合、**実行側も1.9.1**を使用してください。
+
+```powershell
+git pull origin main
+cd app
+python -m pip install -r requirements.txt
+python -c "import sklearn; print(sklearn.__version__)"
+python -m uvicorn main:app --reload
+```
+
+`http://127.0.0.1:8000/api/status` で `model_ready` と `sklearn_version`、`model_path` を確認できます。
+500エラーが続く場合は、ターミナルに **Prediction error** と例外のトレースバックが表示されます。この全文で原因を特定できます。
+joblibは信頼できる自作ファイルだけを読み込んでください。
