@@ -312,8 +312,7 @@ function detail(id){
  '<div class="sheet-top"><h1>'+moneyBand(g)+'<small>万円（家賃帯）</small></h1>'+
  '<p class="sub">同条件の掲載傾向 / 掲載12日目を基準</p>'+
  '<dl class="spec"><dt>間取り</dt><dd>'+esc(g.layout)+'</dd><dt>築年数</dt><dd>築'+esc(g.age_band)+'</dd><dt>家賃</dt><dd>'+moneyBand(g)+'万円</dd><dt>対象地域</dt><dd>国分寺市</dd></dl></div></div>'+
- /* CTA rendered immediately under the left property panel */
- /* 
+ '<div class="cta"><button class="heart" data-save="'+g.id+'" aria-pressed="'+saved.has(g.id)+'" aria-label="'+(saved.has(g.id)?'お気に入りから外す':'お気に入りに追加')+'">'+ICON.heart+'</button>'+
  '<button class="btn" type="button" data-inquire>申し込む</button></div></div>'+
  '<div class="dr"><div class="panel"><h2>終わりやすさの目安<button class="info" data-open="help" aria-label="目安についての説明を見る">ⓘ</button></h2>'+
  '<div class="mark '+(g.level==='lo'?'lo':'')+'"><div class="row">'+badge(g)+'<span class="t">1週間以内に掲載が'+(g.level==='hi'?'終わりやすい':'終わりにくい')+'条件です。</span></div>'+
@@ -325,8 +324,6 @@ function detail(id){
  '<p class="lead">国分寺市で2020〜2023年に掲載された、同じ条件の物件 '+number(g.count)+'件を、掲載を始めた日から数えた日数です。</p>'+
  row('半分の物件',g.median_days)+row('4分の3の物件',g.three_quarter_days)+
  '<p class="note">この日数は過去の掲載実績です。この条件に当てはまる現在の物件が成約するかどうかを予測するものではありません。</p></details></div></div></div></div>';
- '<div class="cta"><button class="heart" data-save="'+g.id+'" aria-pressed="'+saved.has(g.id)+'" aria-label="'+(saved.has(g.id)?'お気に入りから外す':'お気に入りに追加')+'">'+ICON.heart+'</button>'+
- */
 }
 function render(){
  const h=location.hash||'#/';
