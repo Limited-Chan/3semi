@@ -444,6 +444,23 @@ function renderHelp(){
    <div class="dfoot"><button class="btn" data-close="helpDlg">閉じる</button></div>`;
 }
 
+async function loadHistorical(id){
+  const p=LISTINGS.find(x=>x.id===id), output=document.getElementById('historical-api');
+  if(!p || !output)return;
+  try {
+    const q=new URLSearchParams({layout:p.layout,age:String(p.age),rent_man:String(p.rent)});
+    const response=await fetch('/api/historical?'+q);
+    if(!response.ok)throw new Error('APIエラー '+response.status);
+    const d=await response.json();
+    if(!output.isConnected)return;
+    if(!d.found){output.textContent='この条件の集計はありません。';return;}
+    const pct=(d.risk_after_12_days*100).toFixed(1);
+    output.innerHTML='<strong style="font-size:22px;color:var(--brand)">'+pct+'%</strong>'
+      +'<p>掲載12日目まで続いた同条件 '+Number(d.sample_size).toLocaleString()+'件の集計から、次の7日以内に掲載が終了した割合です。</p>'
+      +'<p>これは過去の実績であり、この物件固有の予測ではありません。現在の掲載日数と混同しないでください。</p>';
+  }catch(e){if(output.isConnected)output.textContent='集計APIに接続できませんでした。サーバーから起動してください。';}
+}
+
 /* ===== ルーティング ===== */
 function route(){
   const h = location.hash || '#/';
@@ -451,7 +468,7 @@ function route(){
   const m = h.match(/^#\/p\/(\d+)$/);
   const prevDetail = app.classList.contains('detail');
   if(!prevDetail) state.listScroll = window.scrollY;
-  if(m){ app.className='detail'; app.innerHTML = renderDetail(+m[1]); window.scrollTo(0,0); document.title='物件の詳細 - すぐ埋まる？ナビ'; return; }
+  if(m){ app.className='detail'; app.innerHTML = renderDetail(+m[1]); loadHistorical(+m[1]); window.scrollTo(0,0); document.title='物件の詳細 - すぐ埋まる？ナビ'; return; }
   app.className='';
   if(h==='#/keep'){ app.innerHTML=renderKeep(); document.title='キープ - すぐ埋まる？ナビ'; }
   else if(h==='#/my'){ app.innerHTML=renderMy(); document.title='マイページ - すぐ埋まる？ナビ'; }
