@@ -239,8 +239,8 @@ async function listingDetail(id){
   '<p>駅：'+esc(data.station||'不明')+' ／ 徒歩'+(data.walk_distance??'不明')+'分 ／ '+(data.area??'不明')+'㎡</p>'+
   '<div class="kpi-grid"><div class="kpi"><b>'+esc(data.start_date||'不明')+'</b><span>掲載開始日</span></div><div class="kpi"><b>'+esc(data.end_date||'不明')+'</b><span>掲載終了日</span></div><div class="kpi"><b>'+(data.duration??'不明')+'日</b><span>記録された掲載期間</span></div></div>'+
   '<div class="notice">過去の掲載期間は実績であり、その物件が掲載中だった時点での将来予測を意味しません。予測には掲載経過日数などを入力します。</div>'+
-  '<div class="actions"><button class="btn" id="analyzeListing" '+(data.rent_man!=null&&data.age!=null&&data.area!=null&&data.station&&data.walk_distance!=null&&data.start_month?'':'disabled')+'>この条件でリスクを分析</button><a class="btn alt" href="#/groups">似た条件の過去集計を見る</a></div>'+
-  '<p class="small">分析ボタンが無効な場合は、研究モデルが必要とする駅・面積・築年数などの値がこの記録にありません。</p></div>';
+  '<div class="actions"><button class="btn" id="analyzeListing">この条件でリスクを分析</button><a class="btn alt" href="#/groups">似た条件の過去集計を見る</a></div>'+
+  '<p class="small">抽出ファイルに駅名・面積・築年数などが含まれない場合は、分析画面で不足する項目を自分で入力してください。</p></div>';
  }catch(e){app.innerHTML='<div class="empty">'+esc(e.message)+'<p><a class="btn" href="#/">一覧に戻る</a></p></div>';}
 }
 
@@ -276,7 +276,7 @@ document.addEventListener('click',event=>{
  if(event.target.closest('#reloadListings'))fetchListings();
  if(event.target.closest('#listingPrev')){if(listingState.page>1){listingState.page--;fetchListings();}return;}
  if(event.target.closest('#listingNext')){if(listingState.page*listingState.limit<listingState.total){listingState.page++;fetchListings();}return;}
- if(event.target.closest('#analyzeListing')&&currentListing){const x=currentListing;location.hash='#/analyze';requestAnimationFrame(()=>{for(const [key,val] of Object.entries({layout:x.layout,age:x.age,rent_man:x.rent_man,area:x.area,station:x.station,walk_distance:x.walk_distance,start_month:x.start_month,elapsed_day:12})){const el=document.querySelector('#analysisForm [name="'+key+'"]');if(el&&val!=null)el.value=val;} });return;}
+ if(event.target.closest('#analyzeListing')&&currentListing){const x=currentListing;location.hash='#/analyze';requestAnimationFrame(()=>{for(const [key,val] of Object.entries({layout:x.layout,age:x.age,rent_man:x.rent_man,area:x.area,station:x.station,walk_distance:x.walk_distance,start_month:x.start_month,elapsed_day:12})){const el=document.querySelector('#analysisForm [name="'+key+'"]');if(el)el.value=(val===null||val===undefined?'':val);} });return;}
 });
 document.addEventListener('change',event=>{
  const mapping={filterLayout:'layout',filterAge:'age',filterRent:'rent',sort:'sort'};
