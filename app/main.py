@@ -54,6 +54,36 @@ def _find_historical(layout: str, age: float, rent_man: float):
                 and r["家賃(万円)"] == f"{rent_low}〜{rent_low + 2}"), None)
 
 
+
+@app.get("/api/groups")
+def list_historical_groups():
+    """All available research summary groups, not reconstructed individual listings."""
+    with (HERE / "historical.csv").open(encoding="utf-8-sig", newline="") as source:
+        rows = list(csv.DictReader(source))
+    result = []
+    for i, row in enumerate(rows):
+        risk = float(row["12日載った物件が、あと7日以内に終わる割合"])
+        result.append({
+            "id": i + 1,
+            "layout": row["間取り"],
+            "age_band": row["築年数"],
+            "rent_band": row["家賃(万円)"],
+            "count": int(row["件数"]),
+            "quarter_days": float(row["25%が終わる日"]),
+            "median_days": float(row["半分が終わる日"]),
+            "three_quarter_days": float(row["75%が終わる日"]),
+            "day12_next7_rate": round(risk, 8),
+            "level": "hi" if risk >= 0.15 else "lo",
+        })
+    return {
+        "mode": "historical-12-day",
+        "threshold": 0.15,
+        "total_groups": len(result),
+        "groups": result,
+        "notice": "国分寺市の過去物件を条件別にまとめた集計です。現存する個別物件の一覧ではありません。"
+    }
+
+
 @app.post("/api/historical-risks")
 def historical_risks(request: HistoricalRiskRequest):
     """実データから、掲載12日目時点の条件別7日掲載終了割合で高低を区分する。
