@@ -2,6 +2,8 @@
 from pathlib import Path
 import csv
 import logging
+import os
+import math
 import sys
 from functools import lru_cache
 from fastapi import FastAPI, HTTPException
@@ -53,6 +55,128 @@ def _find_historical(layout: str, age: float, rent_man: float):
                 and r["築年数"] == age_band
                 and r["家賃(万円)"] == f"{rent_low}〜{rent_low + 2}"), None)
 
+
+
+
+# The local extracted dataset remains on the user's machine; it is never committed
+# or uploaded by the application.
+DATA_CANDIDATES = [
+    REPO / "data" / "prepared" / "kokubunji_raw.parquet",
+    OHORI / "prepared" / "kokubunji.csv.gz",
+    REPO / "data" / "prepared" / "kokubunji.csv.gz",
+]
+
+
+def _data_source():
+    override = os.environ.get("KOKUBUNJI_DATA_PATH", "").strip().strip('"')
+    if override:
+        candidate = Path(override).expanduser()
+        if not candidate.is_file():
+            raise FileNotFoundError(f"KOKUBUNJI_DATA_PATH に指定したファイルがありません: {candidate}")
+        return candidate.resolve()
+    return next((path for path in DATA_CANDIDATES if path.is_file()), None)
+
+
+@lru_cache(maxsize=2)
+def _load_listings_cached(path_str: str, modified_ns: int):
+    """Read one local extracted file and reuse the cleaned 2020-2023 data."""
+    import pandas as pd
+    from src.data import load_prepared
+    if str(OHORI) not in sys.path:
+        sys.path.insert(0, str(OHORI))
+    data = load_prepared(path_str)
+    if "addr1_2_name" in data.columns:
+        data = data[data["addr1_2_name"].astype(str).str.normalize("NFKC").str.strip() == "国分寺市"]
+    data = data[data["start_year"].isin([2020, 2021, 2022, 2023])].copy()
+    data = data.reset_index(drop=True)
+    data["display_id"] = data.index + 1
+    return data
+
+
+def _local_listings():
+    path = _data_source()
+    if path is None:
+        return None
+    return _load_listings_cached(str(path), path.stat().st_mtime_ns)
+
+
+def _number_or_none(value):
+    try:
+        v = float(value)
+        return v if math.isfinite(v) else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _listing_record(row):
+    def val(key):
+        v = row.get(key)
+        if v is None:
+            return ""
+        import pandas as pd
+        return "" if pd.isna(v) else str(v)
+    return {
+        "id": int(row["display_id"]),
+        "layout": val("layout"),
+        "age": _number_or_none(row.get("age")),
+        "rent_man": (None if _number_or_none(row.get("rent")) is None
+                     else round(float(row["rent"]) / 10000, 2)),
+        "area": _number_or_none(row.get("area")),
+        "walk_distance": _number_or_none(row.get("walk_distance")),
+        "station": val("station"),
+        "start_month": (None if _number_or_none(row.get("start_month")) is None
+                        else int(row["start_month"])),
+        "start_date": val("pub_start_date"),
+        "end_date": val("pub_end_date"),
+        "duration": _number_or_none(row.get("duration")),
+        "city": val("addr1_2_name"),
+    }
+
+
+@app.get("/api/listings")
+def list_local_listings(
+    page: int = 1, limit: int = 24, layout: str = "",
+    rent_max: float | None = None, age_max: float | None = None,
+    query: str = "",
+):
+    """Paginated 2020-2023 historical records, not currently available listings."""
+    if page < 1 or limit < 1 or limit > 100 or (rent_max is not None and rent_max < 0) or (age_max is not None and age_max < 0):
+        raise HTTPException(422, "page >= 1, 1 <= limit <= 100, filters >= 0")
+    try:
+        data = _local_listings()
+    except Exception as e:
+        logger.exception("Unable to load local data")
+        raise HTTPException(422, f"抽出済みデータの読み込みに失敗: {str(e)[:220]}") from e
+    if data is None:
+        return {"ready": False, "total": 0, "page": page, "limit": limit, "items": [],
+                "message": "国分寺市の個別データファイルが未設定です。KOKUBUNJI_DATA_PATH または自動検出先に配置してください。"}
+    import pandas as pd
+    if layout:
+        data = data[data["layout"].astype("string") == layout]
+    if rent_max is not None:
+        data = data[data["rent"] <= rent_max * 10000]
+    if age_max is not None:
+        data = data[data["age"] <= age_max]
+    if query.strip():
+        q = query.strip()
+        mask = (data["layout"].astype("string").str.contains(q, case=False, regex=False, na=False) |
+                data["station"].astype("string").str.contains(q, case=False, regex=False, na=False))
+        data = data[mask]
+    total = len(data)
+    subset = data.iloc[(page - 1) * limit:page * limit]
+    return {"ready": True, "total": total, "page": page, "limit": limit,
+            "items": [_listing_record(row) for _, row in subset.iterrows()],
+            "message": "2020〜2023年の国分寺市の過去掲載記録（成約・現況ではありません）"}
+
+
+@app.get("/api/listings/{listing_id}")
+def get_local_listing(listing_id: int):
+    data = _local_listings()
+    if data is None:
+        raise HTTPException(404, "個別物件データが未設定です")
+    if listing_id < 1 or listing_id > len(data):
+        raise HTTPException(404, "物件記録が見つかりません")
+    return _listing_record(data.iloc[listing_id - 1])
 
 
 @app.get("/api/groups")
@@ -149,8 +273,10 @@ def home():
 def status():
     import sklearn
     selected = next((p for p in MODEL_CANDIDATES if p.is_file()), None)
+    local_source = _data_source() if not os.environ.get("KOKUBUNJI_DATA_PATH") else os.environ.get("KOKUBUNJI_DATA_PATH")
     return {"model_ready": selected is not None, "model_path": str(selected) if selected else None,
             "sklearn_version": sklearn.__version__,
+            "local_data_configured": bool(local_source),
             "historical_risk_ready": True, "mode": "model-if-available-else-historical",
             "threshold": 0.15}
 
