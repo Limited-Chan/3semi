@@ -20,6 +20,37 @@ class ResearchAppSmokeTests(unittest.TestCase):
             self.assertTrue(0 <= row["day12_next7_rate"] <= 1)
             self.assertEqual(row["level"], "hi" if row["day12_next7_rate"] >= .15 else "lo")
 
+
+    def test_local_listing_pagination_and_filters(self):
+        import pandas as pd
+        local = pd.DataFrame([
+            {"display_id": 1, "layout": "1K", "age": 7.0, "rent": 72000.0,
+             "area": 22.0, "walk_distance": 6.0, "station": "国分寺",
+             "start_month": 6, "pub_start_date": "2023-06-01",
+             "pub_end_date": "2023-06-12", "duration": 11.0,
+             "addr1_2_name": "国分寺市"},
+            {"display_id": 2, "layout": "2LDK", "age": 14.0, "rent": 115000.0,
+             "area": 55.0, "walk_distance": 12.0, "station": "西国分寺",
+             "start_month": 7, "pub_start_date": "2023-07-01",
+             "pub_end_date": "2023-07-30", "duration": 29.0,
+             "addr1_2_name": "国分寺市"},
+        ])
+        with patch.object(main, "_local_listings", return_value=local):
+            response = main.list_local_listings(page=1, limit=24)
+            self.assertTrue(response["ready"])
+            self.assertEqual(response["total"], 2)
+            self.assertEqual(response["items"][0]["rent_man"], 7.2)
+            result = main.list_local_listings(page=1, limit=1, layout="1K")
+            self.assertEqual(result["total"], 1)
+            self.assertEqual(result["items"][0]["id"], 1)
+            self.assertEqual(main.get_local_listing(2)["layout"], "2LDK")
+
+    def test_missing_local_file_preserves_summary_mode(self):
+        with patch.object(main, "_local_listings", return_value=None):
+            result = main.list_local_listings()
+            self.assertFalse(result["ready"])
+            self.assertEqual(result["items"], [])
+
     def test_analysis_without_model_is_historical_not_fake_prediction(self):
         req = main.AnalyzeRequest(layout="1K", age=7, rent_man=7.2,
                                   area=22, walk_distance=6, station="国分寺",
