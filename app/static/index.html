@@ -105,7 +105,7 @@ function card(g){
 }
 function home(){
  navRender('#/groups');
- app.innerHTML='<section class="hero"><div><h1>気になる物件、<br>早めに問い合わせたほうがいい？</h1><p>国分寺市の賃貸掲載データから、条件ごとの「掲載が終わりやすさ」を比べられます。実際の研究データを使った分析ナビです。</p></div><div class="bubble"><strong>'+groups.length+'条件</strong><small>実データから作成した集計グループ</small></div></section>'+
+ app.innerHTML='<section class="hero"><div><h1>気になる物件、<br>早めに問い合わせたほうがいい？</h1><p>国分寺市の賃貸掲載データから、条件ごとの「掲載の終わりやすさ」を比べられます。実際の研究データを使った分析ナビです。</p></div></section>'+
  notice()+
  '<div class="layout"><aside class="panel"><h2>条件から探す</h2><div class="filter-grid">'+
  '<div class="field"><label for="filterSearch">キーワード</label><input id="filterSearch" placeholder="例：1K / 6〜8" value="'+esc(state.search)+'"></div>'+
@@ -114,7 +114,7 @@ function home(){
  '<div class="field"><label for="filterRent">家賃帯</label><select id="filterRent">'+optionHtml(unique('rent_band'),state.rent)+'</select></div>'+
  '</div><div class="chips" role="group" aria-label="掲載の終わりやすさ"><button class="chip '+(state.level==='すべて'?'active':'')+'" data-level="すべて">すべて</button><button class="chip '+(state.level==='hi'?'active':'')+'" data-level="hi">終わりやすい</button><button class="chip '+(state.level==='lo'?'active':'')+'" data-level="lo">終わりにくい</button></div>'+
  '<label class="small"><input type="checkbox" id="onlySaved" '+(state.onlySaved?'checked':'')+'> キープした条件だけ</label><div style="margin-top:15px"><button class="reset" id="resetFilters">絞り込みをリセット</button></div></aside>'+
- '<section><div class="section-head"><div><h2>研究データ一覧</h2><div class="count" id="resultCount"></div></div><label class="small">並び替え <select id="sort" style="min-width:180px"><option value="count">対象件数の多い順</option><option value="rate">終了割合の高い順</option><option value="median">終了中央値の短い順</option><option value="rent">家賃帯の低い順</option></select></label></div><div class="results" id="results"></div></section></div>';
+ '<section><div class="section-head"><div><h2>研究データ一覧</h2><div class="count" id="resultCount"></div></div><label class="small">表示する順番 <select id="sort" style="min-width:180px"><option value="count">データが多い順</option><option value="rate">終わりやすい順</option><option value="median">掲載終了までが早い順</option><option value="rent">家賃が安い順</option></select></label></div><div class="results" id="results"></div></section></div>';
  document.getElementById('sort').value=state.sort;
  updateResults();
 }
