@@ -1,305 +1,497 @@
-<!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
 <title>すぐ埋まる？ナビ</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap">
 <style>
-/* Layout: 上に検索条件(①)、下の左に検索結果と高・低(②)、右に選んだ物件の実績(③)。番号は使う順番。狭い画面では縦に積む。 */
-:root {
-  --bg: #f5f1f3;
-  --surface: #ffffff;
-  --line: #e8dbe2;
-  --ink: #2b1623;
-  --muted: #76606c;
-  --hi: #c2185b;
-  --hi-soft: #fde7ef;
-  --lo: #3949ab;
-  --lo-soft: #e8eaf7;
-  --band: #4a1d3a;
-  --band-ink: #fdf2f6;
-  --step: #4a1d3a;
-  --font-display: 'Zen Kaku Gothic New', 'Noto Sans JP', 'Hiragino Sans', sans-serif;
-  --font-body: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+:root{
+  --brand:#8B1E3F; --brand-soft:#fdf2f5; --brand-line:#f1c5d2;
+  --ink:#1f2937; --sub:#4b5563; --mute:#6b7280; --line:#e5e7eb;
+  --bg:#f3f4f6; --card:#fff; --nav-h:64px;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #1c1117; --surface: #281a22; --line: #432e39; --ink: #f7eaf0; --muted: #c3a8b6;
-  --hi: #ff8fb8; --hi-soft: #47202f; --lo: #a3abff; --lo-soft: #252948; --band: #120a0f; --band-ink: #fdf2f6; --step: #ff9ec4;
-  color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #1c1117; --surface: #281a22; --line: #432e39; --ink: #f7eaf0; --muted: #c3a8b6;
-  --hi: #ff8fb8; --hi-soft: #47202f; --lo: #a3abff; --lo-soft: #252948; --band: #120a0f; --band-ink: #fdf2f6; --step: #ff9ec4;
-  color-scheme: dark }
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#e5e7eb;color:var(--ink);
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;
+  font-size:14px;line-height:1.6}
+button,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-* { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
-.num { font-variant-numeric: tabular-nums; }
-button, select { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--hi); outline-offset: 2px; }
+#app{max-width:480px;margin:0 auto;min-height:100dvh;background:var(--bg);position:relative;
+  box-shadow:0 0 30px rgba(0,0,0,.12);padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom))}
+#app.detail{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 
-header.top { background: var(--band); color: var(--band-ink);
-  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.top-in { max-width: 1240px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.logo { font-family: var(--font-display); font-weight: 900; font-size: 22px; }
-.logo span { color: #ff9ec4; }
-.mock { margin-left: auto; font-size: 13px; font-weight: 700; letter-spacing: .08em; border: 1px solid rgba(253,242,246,.55); border-radius: 999px; padding: 2px 12px; }
+/* デモ表示 */
+.demo{background:#fff7ed;border-bottom:1px solid #fed7aa;color:#9a3412;font-size:12px;
+  padding:8px 12px;display:flex;gap:8px;align-items:flex-start}
+.demo button{margin-left:auto;min-width:44px;min-height:32px;color:#9a3412;font-weight:700}
 
-.wrap { max-width: 1240px; margin: 0 auto; padding-block: 14px 20px;
-  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  display: flex; flex-direction: column; gap: 14px; }
-.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
-.step { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--step); color: var(--surface);
-  font-family: var(--font-display); font-weight: 900; font-size: 15px; flex: none; }
-.step-title { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 900; font-size: 18px; margin: 0; }
+/* ヘッダー */
+.top{background:#fff;border-bottom:1px solid var(--line)}
+.search{display:flex;align-items:center;gap:10px;width:calc(100% - 24px);margin:10px 12px 10px;
+  min-height:52px;padding:8px 14px;background:#f9fafb;border:1px solid var(--line);border-radius:999px;text-align:left}
+.search .t{flex:1;min-width:0}
+.search .t b{display:block;font-size:14px}
+.search .t span{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);display:flex;gap:6px;padding:6px 12px 10px}
+.seg button{flex:1;min-height:44px;border:1px solid var(--line);border-radius:10px;background:#fff;
+  font-weight:700;font-size:13px;color:var(--sub)}
+.seg button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff}
+.seg small{font-weight:500;font-size:12px;margin-left:2px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line)}
+.bar .n{font-weight:700}
+.bar .n em{font-style:normal;color:var(--brand);font-size:18px}
+.sort{min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px}
 
-/* ① 検索条件 */
-form.search { padding: 12px 16px; display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
-.field { display: flex; align-items: center; gap: 8px; }
-.field label { font-size: 13px; font-weight: 700; color: var(--muted); }
-.field select { font-size: 16px; font-weight: 700; padding: 6px 30px 6px 12px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); }
-.search .go { margin-left: auto; font-weight: 700; padding: 8px 22px; border-radius: 10px; border: 2px solid var(--ink); background: var(--ink); color: var(--surface); cursor: pointer; }
+/* 凡例 */
+.legend{margin:10px 12px 0;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;font-size:12px;color:var(--sub)}
+.legend b{color:var(--ink)}
+.legend button{color:var(--brand);font-weight:700;text-decoration:underline;min-height:32px}
 
-main { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 6fr); gap: 14px; align-items: start; }
-@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } .search .go { margin-left: 0; } }
+/* 物件カード */
+.list{padding:12px;display:grid;gap:14px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.card a{display:block}
+.card a:active{background:#fafafa}
+.photo{height:150px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;
+  color:rgba(255,255,255,.92);letter-spacing:.05em}
+.card .body{padding:12px 14px 14px}
+.price{display:flex;align-items:baseline;justify-content:space-between}
+.price b{font-size:22px}.price b small{font-size:13px;font-weight:500}
+.price span{font-size:12px;color:var(--mute)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.tags span{background:#f3f4f6;color:var(--sub);padding:2px 8px;border-radius:6px;font-size:12px}
+.sta{font-size:13px;color:var(--sub)}
+.foot{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid #f3f4f6}
+.foot .d{font-size:12px;color:var(--mute)}
+.foot .mk{display:flex;align-items:center;gap:6px}
+.foot .cap{font-size:12px;color:var(--sub)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-weight:700;font-size:13px;border:1px solid}
+.badge svg{width:14px;height:14px}
+.badge.hi{background:var(--brand-soft);color:var(--brand);border-color:var(--brand-line)}
+.badge.lo{background:#f3f4f6;color:#374151;border-color:#d1d5db}
+.heart{position:absolute;top:8px;right:8px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);
+  display:flex;align-items:center;justify-content:center;color:#6b7280;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.heart svg{width:22px;height:22px}
+.heart[aria-pressed=true]{color:var(--brand)}
+.heart[aria-pressed=true] svg{fill:currentColor}
 
-/* ② 検索結果 */
-.list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-.list-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.count { font-size: 14px; color: var(--muted); }
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tab { font-size: 14px; font-weight: 700; padding: 3px 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
-.tab[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-ul.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.card { width: 100%; text-align: left; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 7px 10px;
-  display: flex; align-items: center; gap: 12px; cursor: pointer; }
-.card:hover { border-color: var(--muted); }
-.card[aria-current="true"] { border-color: var(--ink); }
-.tile { flex: none; width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center;
-  font-family: var(--font-display); font-weight: 900; font-size: 26px; }
-.tile.hi { background: var(--hi); color: #fff; }
-.tile.lo { background: var(--lo-soft); color: var(--lo); }
-.card .txt { min-width: 0; display: flex; flex-direction: column; }
-.card .spec { font-weight: 900; font-size: 18px; line-height: 1.3; }
-.card .meta { font-size: 13px; color: var(--muted); }
-.empty { padding: 24px 8px; text-align: center; color: var(--muted); }
+.empty{margin:40px 20px;text-align:center;color:var(--sub)}
+.empty button,.btn{min-height:48px;padding:0 20px;border-radius:12px;background:var(--brand);color:#fff;font-weight:700}
+.empty p{margin:0 0 14px}
 
-/* ③ 詳細 */
-.detail { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
-.d-top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.d-top .titles { min-width: 0; flex: 1 1 260px; display: flex; flex-direction: column; gap: 4px; }
-.d-top h1 { font-family: var(--font-display); font-size: 26px; margin: 0; line-height: 1.25; }
-.d-top .sub { font-size: 14px; color: var(--muted); }
-.verdict { display: flex; align-items: center; gap: 12px; padding: 8px 16px 8px 8px; border-radius: 14px; }
-.verdict.hi { background: var(--hi-soft); }
-.verdict.lo { background: var(--lo-soft); }
-.verdict .tile { width: 58px; height: 58px; font-size: 32px; }
-.verdict p { margin: 0; font-weight: 700; font-size: 16px; line-height: 1.35; }
-.verdict p small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+/* 下のナビ */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;height:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);display:flex;z-index:30}
+.nav a{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:12px;color:var(--mute);font-weight:500}
+.nav a[aria-current=page]{color:var(--brand);font-weight:700}
+.nav svg{width:24px;height:24px}
+.nav i{font-style:normal;background:var(--brand);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;margin-left:4px}
 
-.sec { display: flex; flex-direction: column; gap: 2px; border-top: 1px solid var(--line); padding-top: 12px; }
-.sec h3 { font-size: 16px; font-weight: 900; margin: 0; }
-.sec p { margin: 0; font-size: 13px; color: var(--muted); }
-.big2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-@media (max-width: 480px) { .big2 { grid-template-columns: minmax(0, 1fr); } }
-.big { border-radius: 14px; padding: 12px 16px; background: var(--bg); display: flex; flex-direction: column; gap: 2px; }
-.big .k { font-size: 14px; font-weight: 700; color: var(--muted); }
-.big .v { font-family: var(--font-display); font-weight: 900; font-size: 48px; line-height: 1.05; }
-.big .v small { font-size: 20px; margin-left: 2px; }
-.big .s { font-size: 13px; color: var(--muted); }
+/* 詳細 */
+.hero{height:230px;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:700;color:rgba(255,255,255,.92);position:relative}
+.back{position:absolute;top:12px;left:12px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.92);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.back svg{width:22px;height:22px}
+.sheet-top{background:#fff;margin-top:-20px;border-radius:20px 20px 0 0;position:relative;padding:18px 16px 4px}
+.sheet-top h1{margin:0;font-size:30px;line-height:1.1}.sheet-top h1 small{font-size:16px;font-weight:500}
+.sheet-top .sub{margin:6px 0 0;font-size:13px;color:var(--mute)}
+dl.spec{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:16px 0;font-size:14px}
+dl.spec dt{color:var(--mute)}dl.spec dd{margin:0}
+.panel{background:#fff;padding:4px 16px 20px}
+.panel h2{display:flex;align-items:center;justify-content:space-between;font-size:16px;margin:12px 0}
+.info{min-width:44px;min-height:44px;color:var(--mute);display:flex;align-items:center;justify-content:center}
+.info svg{width:22px;height:22px}
+.mark{border:1px solid var(--brand-line);background:var(--brand-soft);border-radius:14px;padding:14px}
+.mark.lo{border-color:var(--line);background:#f9fafb}
+.mark .row{display:flex;align-items:center;gap:10px}
+.mark .row span.t{font-size:14px}
+.rec{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.rec h3{margin:0 0 8px;font-size:13px;color:var(--sub)}
+.rec .r{margin:10px 0;font-size:13px}
+.rec .r>span{display:block;color:var(--sub);margin-bottom:2px}
+.more{margin-top:4px}
+.more summary{min-height:44px;display:flex;align-items:center;gap:6px;color:var(--brand);font-weight:700;font-size:13px;cursor:pointer;list-style:none}
+.more summary::-webkit-details-marker{display:none}
+.more summary::after{content:"▼";font-size:9px}
+.more[open] summary::after{content:"▲"}
+.more p{margin:6px 0;font-size:13px;color:var(--sub)}
+.more .cond{font-weight:700;color:var(--ink)}
+.more .lead{margin:6px 0 4px}
+.rec .key{margin:6px 0 0;font-size:15px;font-weight:700;color:var(--ink)}
+.mark .note{margin:8px 0 0}
+.rec .lead{margin:0 0 8px;font-size:13px;color:var(--sub)}
+.rec .bar2{display:flex;align-items:center;gap:8px;min-height:22px}
+.rec .bar2 i{flex:none;display:block;height:16px;border-radius:4px;background:var(--brand);width:max(4px,calc((100% - 9.5em) * var(--w)))}
+.rec .bar2 b{font-size:12px;white-space:nowrap}
+.rec .n{font-size:12px;color:var(--mute);margin:6px 0 0}
+.note{font-size:12px;color:var(--mute);margin:10px 0 0}
+.cta{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--line);
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;z-index:30}
+.cta .heart{position:static;box-shadow:none;border:1px solid var(--line);border-radius:12px;width:56px;height:52px;background:#fff}
+.cta .btn{flex:1;min-height:52px;font-size:16px}
 
-.timeline svg { width: 100%; height: auto; display: block; }
-.timeline text { font-family: var(--font-body); font-size: 13px; fill: var(--muted); }
-.timeline .lab { font-weight: 700; fill: var(--ink); }
-.timeline .nowlab { font-weight: 700; fill: var(--hi); }
+/* キープ比較 */
+.cmp{margin:0 12px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:#f9fafb;color:var(--sub);font-weight:700;font-size:12px}
+tr:last-child td{border-bottom:0}
+.h2{margin:14px 12px 0;font-size:15px}
 
-.decide { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.btn { font-weight: 700; padding: 8px 20px; border-radius: 10px; border: 2px solid var(--ink); background: var(--ink); color: var(--surface); cursor: pointer; }
-.btn.ghost { background: transparent; color: var(--ink); }
-.decide p { margin: 0; font-size: 14px; font-weight: 700; flex: 1 1 200px; }
-.toast { font-size: 13px; color: var(--hi); font-weight: 700; width: 100%; }
-.note { font-size: 12px; color: var(--muted); margin: 0; }
+/* ダイアログ */
+dialog{border:0;padding:0;color:var(--ink);background:#fff}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog.sheet{position:fixed;inset:auto 0 0 0;margin:0 auto;width:100%;max-width:480px;max-height:88dvh;border-radius:20px 20px 0 0;overflow:auto}
+dialog.full{position:fixed;inset:0;margin:0 auto;width:100%;max-width:480px;height:100dvh;max-height:100dvh}
+.dh{position:sticky;top:0;z-index:2;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 16px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font-size:16px}
+.dh button{min-width:44px;min-height:44px;font-weight:700;color:var(--sub)}
+.db{padding:16px}
+.db section{margin-bottom:22px}
+.db h3{margin:0 0 8px;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{min-height:44px;padding:0 14px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-weight:500}
+.chips button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.field{width:100%;min-height:48px;padding:0 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
+.dfoot{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.dfoot .btn{width:100%}
+.helpitem{display:flex;gap:12px;margin:0 0 18px}
+.helpitem .ic{flex:none;width:36px;height:36px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:var(--sub)}
+.helpitem .ic svg{width:20px;height:20px}
+.helpitem h3{margin:0 0 2px;font-size:15px}.helpitem p{margin:0;color:var(--sub);font-size:14px}
+
+#toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translate(-50%,20px);max-width:min(440px,92vw);
+  background:#111827;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:60}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+
+/* 横幅のある画面(PC・タブレット) */
+.side{display:none}
+.backfix{position:fixed;top:12px;left:max(12px,calc(50% - 228px));z-index:25;color:#111}
+@media (min-width:900px){
+  body{background:#f3f4f6}
+  #app{max-width:1120px;box-shadow:none;display:flex;flex-direction:column;padding-bottom:32px}
+  #app.detail{padding-bottom:32px}
+  .demo{order:-2}
+  .nav{order:-1;position:sticky;top:0;left:auto;transform:none;max-width:none;width:100%;height:60px;padding:0 16px;
+    justify-content:flex-start;gap:4px;border-top:0;border-bottom:1px solid var(--line)}
+  .nav::before{content:"すぐ埋まる？ナビ";font-weight:700;color:var(--brand);font-size:18px;display:flex;align-items:center;margin-right:28px}
+  .nav a{flex:none;flex-direction:row;gap:8px;padding:0 16px;height:100%;font-size:14px}
+  .listtop{display:none}
+  .seg{top:60px;padding-top:10px}
+  .seg button{max-width:140px}
+  .wrap{display:grid;grid-template-columns:280px 1fr;gap:16px;padding:12px 16px;align-items:start}
+  .side{display:block;position:sticky;top:140px;background:#fff;border:1px solid var(--line);border-radius:14px;max-height:calc(100dvh - 160px);overflow:auto}
+  .side .dh{position:static}
+  .side .db{padding:14px 16px 4px}
+  .content .bar{border:1px solid var(--line);border-radius:12px}
+  .content .legend{margin:12px 0 0}
+  .list{grid-template-columns:repeat(auto-fill,minmax(290px,1fr));padding:14px 0 0}
+  .photo{height:130px}
+  .cmp{margin:0 16px 12px}.h2,.note[style]{margin-left:16px!important}
+  #app>.list{padding:14px 16px}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;align-items:start}
+  .dl,.dr{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .hero{height:300px}
+  .sheet-top{margin-top:0;border-radius:0}
+  .backfix{top:76px;left:max(28px,calc(50% - 530px))}
+  .cta{position:sticky;left:auto;transform:none;max-width:none;width:auto;margin:0 16px;border:1px solid var(--line);border-radius:14px;bottom:12px}
+  dialog.full,dialog.sheet{inset:0;margin:auto;width:560px;max-width:92vw;height:auto;max-height:86dvh;border-radius:16px}
+  #toast{bottom:40px}
+}
 </style>
-</head><body>
+</head>
+<body>
+<div id="app"></div>
 
-
-<header class="top">
-  <div class="top-in">
-    <div class="logo">すぐ埋まる？<span>ナビ</span></div>
-    <div class="mock">画面イメージ</div>
-  </div>
-</header>
-
-<div class="wrap">
-  <form class="panel search" id="search" aria-label="条件で探す">
-    <h2 class="step-title"><span class="step">1</span>条件で探す</h2>
-    <div class="field"><label for="q-area">エリア</label>
-      <select id="q-area"><option>国分寺市</option></select></div>
-    <div class="field"><label for="q-layout">間取り</label>
-      <select id="q-layout">
-        <option value="">指定なし</option><option>1R</option><option selected>1K</option><option>1LDK</option><option>2DK</option><option>2LDK</option>
-      </select></div>
-    <div class="field"><label for="q-rent">家賃</label>
-      <select id="q-rent">
-        <option value="4">4万円まで</option><option value="6">6万円まで</option><option value="8" selected>8万円まで</option>
-        <option value="10">10万円まで</option><option value="14">14万円まで</option><option value="99">指定なし</option>
-      </select></div>
-    <div class="field"><label for="q-age">築年数</label>
-      <select id="q-age">
-        <option value="99" selected>指定なし</option><option value="10">10年まで</option><option value="20">20年まで</option><option value="30">30年まで</option>
-      </select></div>
-    <button class="go" type="submit">検索</button>
-  </form>
-
-  <main>
-    <section class="panel list" aria-labelledby="list-title">
-      <div class="list-top">
-        <h2 class="step-title" id="list-title"><span class="step">2</span>結果に、高・低が付く</h2>
-        <span class="count num" id="count"></span>
-      </div>
-      <div class="tabs" role="group" aria-label="高・低で表示を切り替え">
-        <button class="tab" id="f-all" aria-pressed="true" data-f="all">高・低どちらも</button>
-        <button class="tab" id="f-hi" aria-pressed="false" data-f="hi">高だけ</button>
-        <button class="tab" id="f-lo" aria-pressed="false" data-f="lo">低だけ</button>
-      </div>
-      <ul class="cards" id="cards"></ul>
-    </section>
-
-    <section class="panel detail" id="detail" aria-live="polite"></section>
-  </main>
-</div>
+<dialog id="filterDlg" class="full" aria-labelledby="fh"></dialog>
+<dialog id="helpDlg" class="sheet" aria-labelledby="hh"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
-// 実績の数字: summary_tables/24_same_condition_duration.csv(国分寺市、2020〜2023年に掲載開始、Kaplan–Meier法)。
-// g = 間取り・築年数帯(10年ごと)・家賃帯(2万円ごと)が同じ過去の物件。物件そのものと高・低のラベルは画面イメージ用の例。
+/* ===== データ =====
+   STATS: 国分寺市・2020〜2023年に掲載を開始した物件の実績(Yamamoto/room_level/summary_tables/24_same_condition_duration.csv)。
+          キー = 間取り|築年数帯|家賃の下限(万円,2万円刻み) → [件数, 25%が終わる日, 半分が終わる日, 75%が終わる日]。件数100件未満の条件は含まれない。
+   LISTINGS: 画面確認用の架空の物件。level(終わりやすい/終わりにくい)は表示例として手で付けたもので、モデルの出力ではない。 */
+const STATS = {"1K|10〜20年|6":[3000,0,5,26],"1K|10年未満|6":[1387,0,9,27],"1K|20〜30年|4":[1207,14,41,97],"1K|30〜40年|4":[1003,15,49,113],"1R|30〜40年|4":[858,16,50,113],"1K|20〜30年|6":[644,9,31,65],"1K|10〜20年|4":[596,9,32,72],"1LDK|10年未満|10":[594,5,13,31],"1LDK|10年未満|8":[555,5,13,32],"1K|10年未満|8":[555,2,14,35],"1R|20〜30年|4":[484,15,44,91],"2DK|30〜40年|6":[402,20,47,93],"1R|10年未満|6":[303,3,15,53],"1R|30〜40年|2":[295,28,70,175],"1LDK|10〜20年|8":[295,8,20,50],"2LDK|10年未満|12":[265,2,9,25],"1K|10〜20年|8":[244,11,32,64],"2DK|30〜40年|8":[238,7,32,65],"1K|30〜40年|2":[227,40,93,180],"2LDK|10年未満|10":[225,1,8,27],"1LDK|10年未満|12":[224,4,12,30],"1K|30〜40年|6":[201,13,42,98],"1R|10年未満|4":[194,24,67,125],"2DK|20〜30年|6":[192,17,52,93],"2DK|20〜30年|8":[187,0,19,48],"1DK|10年未満|8":[173,15,35,73],"1LDK|10〜20年|10":[170,2,13,30],"2LDK|10年未満|14":[169,5,13,29],"1R|10〜20年|6":[164,10,26,53],"1R|10年未満|8":[159,2,12,34],"1R|20〜30年|6":[147,13,43,104],"1R|20〜30年|2":[146,21,53,125],"2LDK|10〜20年|12":[132,4,13,29],"3DK|30〜40年|8":[122,12,30,61],"1K|40年以上|4":[121,13,52,112],"2LDK|10〜20年|10":[121,3,16,40],"3DK|30〜40年|10":[118,8,21,59],"1DK|30〜40年|4":[116,13,43,89],"2LDK|30〜40年|12":[101,12,21,33],"1DK|30〜40年|6":[100,9,25,75]};
 const LISTINGS = [
-  { id: 'k1', layout: '1K',   age: 15, rent: 6.5,  st: '国分寺駅 徒歩9分',    label: 'hi', g: { age: '10〜20年', rent: '6〜8',   n: 3000, q50: 5,  q75: 26,  r7: 0.189 } },
-  { id: 'k2', layout: '1K',   age: 7,  rent: 7.2,  st: '西国分寺駅 徒歩6分',  label: 'hi', g: { age: '10年未満', rent: '6〜8',   n: 1387, q50: 9,  q75: 27,  r7: 0.271 } },
-  { id: 'k3', layout: '1K',   age: 12, rent: 5.6,  st: '恋ヶ窪駅 徒歩7分',    label: 'lo', g: { age: '10〜20年', rent: '4〜6',   n: 596,  q50: 32, q75: 72,  r7: 0.131 } },
-  { id: 'k4', layout: '1K',   age: 22, rent: 6.9,  st: '国分寺駅 徒歩13分',   label: 'lo', g: { age: '20〜30年', rent: '6〜8',   n: 644,  q50: 31, q75: 65,  r7: 0.121 } },
-  { id: 'k5', layout: '1K',   age: 25, rent: 5.0,  st: '国分寺駅 徒歩15分',   label: 'lo', g: { age: '20〜30年', rent: '4〜6',   n: 1207, q50: 41, q75: 97,  r7: 0.115 } },
-  { id: 'k6', layout: '1K',   age: 35, rent: 5.4,  st: '西国分寺駅 徒歩10分', label: 'lo', g: { age: '30〜40年', rent: '4〜6',   n: 1003, q50: 49, q75: 113, r7: 0.096 } },
-  { id: 'r1', layout: '1R',   age: 8,  rent: 6.2,  st: '国分寺駅 徒歩5分',    label: 'hi', g: { age: '10年未満', rent: '6〜8',   n: 303,  q50: 15, q75: 53,  r7: 0.152 } },
-  { id: 'r2', layout: '1R',   age: 24, rent: 4.6,  st: '西国分寺駅 徒歩8分',  label: 'lo', g: { age: '20〜30年', rent: '4〜6',   n: 484,  q50: 44, q75: 91,  r7: 0.103 } },
-  { id: 'r3', layout: '1R',   age: 36, rent: 3.8,  st: '恋ヶ窪駅 徒歩5分',    label: 'lo', g: { age: '30〜40年', rent: '2〜4',   n: 295,  q50: 70, q75: 175, r7: 0.036 } },
-  { id: 'l1', layout: '1LDK', age: 6,  rent: 9.2,  st: '国分寺駅 徒歩12分',   label: 'hi', g: { age: '10年未満', rent: '8〜10',  n: 555,  q50: 13, q75: 32,  r7: 0.231 } },
-  { id: 'l2', layout: '1LDK', age: 3,  rent: 10.8, st: '国分寺駅 徒歩7分',    label: 'hi', g: { age: '10年未満', rent: '10〜12', n: 594,  q50: 13, q75: 31,  r7: 0.245 } },
-  { id: 'l3', layout: '1LDK', age: 14, rent: 9.5,  st: '恋ヶ窪駅 徒歩9分',    label: 'hi', g: { age: '10〜20年', rent: '8〜10',  n: 295,  q50: 20, q75: 50,  r7: 0.182 } },
-  { id: 'd1', layout: '2DK',  age: 34, rent: 6.8,  st: '西国分寺駅 徒歩11分', label: 'lo', g: { age: '30〜40年', rent: '6〜8',   n: 402,  q50: 47, q75: 93,  r7: 0.101 } },
-  { id: 'p1', layout: '2LDK', age: 4,  rent: 12.8, st: '恋ヶ窪駅 徒歩8分',    label: 'hi', g: { age: '10年未満', rent: '12〜14', n: 265,  q50: 9,  q75: 25,  r7: 0.295 } },
-  { id: 'p2', layout: '2LDK', age: 16, rent: 11.4, st: '国分寺駅 徒歩14分',   label: 'hi', g: { age: '10〜20年', rent: '10〜12', n: 121,  q50: 16, q75: 40,  r7: 0.186 } },
+ {id:1, layout:'1K',  age:7,  rent:7.2, mgmt:5000, area:22, floor:3, st:[['西国分寺駅',6]],  days:2,  level:'hi', hue:340},
+ {id:2, layout:'1K',  age:25, rent:5.0, mgmt:3000, area:20, floor:1, st:[['国分寺駅',15]],    days:9,  level:'lo', hue:210},
+ {id:3, layout:'1K',  age:15, rent:6.5, mgmt:4000, area:21, floor:2, st:[['国分寺駅',9]],     days:1,  level:'hi', hue:20},
+ {id:4, layout:'1LDK',age:4,  rent:11.2,mgmt:8000, area:38, floor:5, st:[['国分寺駅',5]],     days:4,  level:'hi', hue:280},
+ {id:5, layout:'1LDK',age:18, rent:9.0, mgmt:0,    area:34, floor:2, st:[['西国分寺駅',12]], days:21, level:'lo', hue:160},
+ {id:6, layout:'1R',  age:35, rent:3.8, mgmt:2000, area:16, floor:1, st:[['国立駅',14]],     days:30, level:'lo', hue:30},
+ {id:7, layout:'2LDK',age:6,  rent:13.0,mgmt:9000, area:52, floor:4, st:[['国立駅',8]],       days:6,  level:'hi', hue:250},
+ {id:8, layout:'1K',  age:3,  rent:8.8, mgmt:6000, area:25, floor:6, st:[['武蔵小金井駅',7]],days:3,  level:'hi', hue:320},
+ {id:9, layout:'2DK', age:33, rent:7.2, mgmt:3000, area:40, floor:2, st:[['恋ヶ窪駅',10]],   days:18, level:'lo', hue:190},
+ {id:10,layout:'1DK', age:12, rent:6.8, mgmt:3500, area:28, floor:3, st:[['国分寺駅',11]],   days:12, level:'lo', hue:60},
+ {id:11,layout:'1LDK',age:28, rent:8.5, mgmt:4000, area:36, floor:2, st:[['西国分寺駅',16]], days:40, level:'lo', hue:120},
 ];
-const ELAPSED = 12;
-let filter = 'all';
-let current = 'k1';
+const STATIONS = ['国分寺駅','西国分寺駅','恋ヶ窪駅','国立駅','武蔵小金井駅'];
+const LAYOUTS = ['1R','1K','1DK','1LDK','2DK','2LDK'];
 
-const $ = (s) => document.querySelector(s);
-const yen = (v) => v.toFixed(1).replace(/\.0$/, '') + '万円';
-const spec = (x) => `${x.layout}・築${x.age}年・${yen(x.rent)}`;
-const L = { hi: '高', lo: '低' };
+/* ===== 小道具 ===== */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ICON = {
+  up:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>',
+  down:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 9l-7 7-7-7"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4.3 6.3a4.5 4.5 0 000 6.4L12 20.4l7.7-7.7a4.5 4.5 0 00-6.4-6.4L12 7.6l-1.3-1.3a4.5 4.5 0 00-6.4 0z"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg>',
+  search:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8.5h.01"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg>',
+};
+const badge = lv => lv==='hi'
+  ? `<span class="badge hi">${ICON.up}終わりやすい</span>`
+  : `<span class="badge lo">${ICON.down}終わりにくい</span>`;
+const photo = p => `<div class="photo" style="background:linear-gradient(135deg,hsl(${p.hue} 35% 62%),hsl(${(p.hue+40)%360} 40% 48%))" aria-hidden="true">${esc(p.layout)}</div>`;
+const money = p => p.rent.toFixed(1).replace(/\.0$/,'');
 
-function results() {
-  const lay = $('#q-layout').value, rent = +$('#q-rent').value, age = +$('#q-age').value;
-  return LISTINGS.filter((x) => (!lay || x.layout === lay) && x.rent <= rent && x.age <= age);
+function ageBand(a){return a<10?'10年未満':a<20?'10〜20年':a<30?'20〜30年':a<40?'30〜40年':'40年以上'}
+function statsOf(p){const low=Math.floor(p.rent/2)*2; return {s:STATS[`${p.layout}|${ageBand(p.age)}|${low}`]||null, cond:`${p.layout}・${ageBand(p.age)}・家賃${low}〜${low+2}万円`}}
+const dayText = d => d<1 ? '掲載当日' : `約${d}日`;
+const walkMin = p => Math.min(...p.st.map(x=>x[1]));
+
+/* ===== 状態 ===== */
+const store = {get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+               set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const state = {
+  f:{layouts:new Set(), stations:new Set(), rentMax:0, ageMax:0, walkMax:0},
+  level:'all', sort:'new',
+  keep:new Set(store.get('keep',[])),
+  demoOpen:store.get('demoOpen',true),
+  listScroll:0, inApp:false,
+};
+const SORTS = {
+  new:['新着順',(a,b)=>a.days-b.days],
+  rent:['家賃が安い順',(a,b)=>a.rent-b.rent],
+  age:['築年数が浅い順',(a,b)=>a.age-b.age],
+  walk:['駅が近い順',(a,b)=>walkMin(a)-walkMin(b)],
+  hi:['終わりやすい順',(a,b)=>(a.level==='hi'?0:1)-(b.level==='hi'?0:1)||a.days-b.days],
+};
+
+function passFilter(p, ignoreLevel){
+  const f=state.f;
+  if(f.layouts.size && !f.layouts.has(p.layout)) return false;
+  if(f.rentMax && p.rent>f.rentMax) return false;
+  if(f.ageMax && p.age>f.ageMax) return false;
+  const sts = f.stations.size ? p.st.filter(x=>f.stations.has(x[0])) : p.st;
+  if(!sts.length) return false;
+  if(f.walkMax && !sts.some(x=>x[1]<=f.walkMax)) return false;
+  if(!ignoreLevel && state.level!=='all' && p.level!==state.level) return false;
+  return true;
+}
+const visible = () => LISTINGS.filter(p=>passFilter(p)).sort(SORTS[state.sort][1]);
+
+function summary(){
+  const f=state.f, t=[];
+  if(f.stations.size) t.push([...f.stations].join('・'));
+  if(f.layouts.size) t.push([...f.layouts].join('・'));
+  if(f.rentMax) t.push(`${f.rentMax}万円以下`);
+  if(f.ageMax) t.push(`築${f.ageMax}年以内`);
+  if(f.walkMax) t.push(`徒歩${f.walkMax}分以内`);
+  return t.length? t.join(' / ') : '条件なし(国分寺市周辺)';
 }
 
-function render() {
-  const all = results();
-  const shown = all.filter((x) => filter === 'all' || x.label === filter);
-  if (!shown.some((x) => x.id === current)) current = shown.length ? shown[0].id : null;
-  const nh = all.filter((x) => x.label === 'hi').length;
-  $('#count').textContent = `${all.length}件(高${nh}・低${all.length - nh})`;
-  const ul = $('#cards');
-  ul.innerHTML = '';
-  if (!shown.length) {
-    ul.innerHTML = '<li class="empty">この条件の物件はありません。条件を変えてください。</li>';
-  }
-  shown.forEach((x) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<button class="card" id="card-${x.id}" aria-current="${x.id === current}">
-      <span class="tile ${x.label}" aria-label="終わりやすさ ${L[x.label]}">${L[x.label]}</span>
-      <span class="txt"><span class="spec">${spec(x)}</span><span class="meta">${x.st}・掲載${ELAPSED}日目</span></span></button>`;
-    li.firstElementChild.addEventListener('click', () => { current = x.id; render(); });
-    ul.appendChild(li);
-  });
-  renderDetail();
-}
-
-// 日数の線: 0〜90日。90日を超える値は端に置き、実際の日数を書く。
-function timeline(g) {
-  const W = 680, H = 118, P = 16, MAX = 90;
-  const x = (d) => P + (Math.min(d, MAX) / MAX) * (W - 2 * P);
-  const y = 48;
-  const ticks = [0, 30, 60, 90];
-  const q75lab = g.q75 > MAX ? `4分の3 ${g.q75}日 →` : `4分の3 ${g.q75}日`;
-  const q50x = x(g.q50), q75x = x(g.q75), nowx = x(ELAPSED);
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="近い条件の過去の物件は、半分が${g.q50}日、4分の3が${g.q75}日で掲載が終了。いまは${ELAPSED}日目">
-    <rect x="${P}" y="${y - 7}" width="${W - 2 * P}" height="14" rx="7" fill="var(--line)"/>
-    <rect x="${P}" y="${y - 7}" width="${Math.max(q75x - P, 14)}" height="14" rx="7" fill="var(--muted)" fill-opacity=".35"/>
-    <rect x="${P}" y="${y - 7}" width="${Math.max(q50x - P, 14)}" height="14" rx="7" fill="var(--ink)"/>
-    <line x1="${nowx}" y1="${y - 24}" x2="${nowx}" y2="${y + 12}" stroke="var(--hi)" stroke-width="3"/>
-    <text class="nowlab" x="${nowx}" y="${y - 30}" text-anchor="middle">いま ${ELAPSED}日目</text>
-    <text class="lab" x="${Math.min(q50x, W - 140)}" y="${y + 30}" text-anchor="${q50x < 60 ? 'start' : 'middle'}">半分 ${g.q50}日</text>
-    <text x="${Math.min(q75x, W - P)}" y="${y + 30}" text-anchor="end">${q75lab}</text>
-    <line x1="${P}" y1="${H - 22}" x2="${W - P}" y2="${H - 22}" stroke="var(--line)"/>
-    ${ticks.map((t) => `<text x="${x(t)}" y="${H - 4}" text-anchor="${t === 0 ? 'start' : t === MAX ? 'end' : 'middle'}">${t}日</text>`).join('')}
-  </svg>`;
-}
-
-function renderDetail() {
-  const box = $('#detail');
-  const x = LISTINGS.find((v) => v.id === current);
-  if (!x) {
-    box.innerHTML = '<h2 class="step-title"><span class="step">3</span>物件を選ぶと、近い物件の実績が出る</h2><p class="note">左の一覧から物件を選んでください。</p>';
-    return;
-  }
-  const g = x.g;
-  const pct = Math.round(g.r7 * 100);
-  const hi = x.label === 'hi';
-  box.innerHTML = `
-    <h2 class="step-title"><span class="step">3</span>選んだ物件と、近い物件の実績</h2>
-    <div class="d-top">
-      <div class="titles">
-        <h1>${spec(x)}</h1>
-        <div class="sub">${x.st}・掲載から${ELAPSED}日目</div>
+/* ===== 画面 ===== */
+function card(p){
+  const kept=state.keep.has(p.id);
+  return `<article class="card">
+    <a href="#/p/${p.id}" aria-label="${esc(p.layout)} ${money(p)}万円 ${esc(p.st[0][0])} 徒歩${p.st[0][1]}分 の詳細を見る">
+      ${photo(p)}
+      <div class="body">
+        <div class="price"><b>${money(p)}<small>万円</small></b><span>${p.mgmt?`管理費 ${p.mgmt.toLocaleString()}円`:'管理費なし'}</span></div>
+        <div class="tags"><span>${esc(p.layout)}</span><span>${p.area}㎡</span><span>築${p.age}年</span><span>${p.floor}階</span></div>
+        <div class="sta">${p.st.map(x=>`${esc(x[0])} 徒歩${x[1]}分`).join(' / ')}</div>
+        <div class="foot"><span class="d">掲載から${p.days}日目</span><span class="mk"><span class="cap">1週間以内に</span>${badge(p.level)}</span></div>
       </div>
-      <div class="verdict ${x.label}">
-        <span class="tile ${x.label}">${L[x.label]}</span>
-        <p>${hi ? '7日以内に<br>終わりやすい' : '7日以内には<br>終わりにくい'}<small>条件から計算した目安</small></p>
-      </div>
-    </div>
-
-    <div class="sec">
-      <h3>間取り・築年数・家賃が近い、過去の物件は</h3>
-      <p class="num">${x.layout}・築${g.age}・家賃${g.rent}万円 の過去${g.n.toLocaleString()}件(国分寺市)</p>
-    </div>
-    <div class="big2">
-      <div class="big"><span class="k">半分が終わるまで</span><span class="v num">${g.q50}<small>日</small></span><span class="s">掲載を始めてから</span></div>
-      <div class="big"><span class="k">${ELAPSED}日目から、あと7日で終わった</span><span class="v num">${pct}<small>%</small></span><span class="s">100件中 約${pct}件</span></div>
-    </div>
-    <div class="timeline">${timeline(g)}</div>
-
-    <div class="decide">
-      <button class="btn" id="ask">問い合わせる</button>
-      <button class="btn ghost" id="keep">あとで見る</button>
-      <p>急ぐかどうかは、あなたが決める。</p>
-      <span class="toast" id="toast" hidden></span>
-    </div>
-    <p class="note">画面イメージ。物件と高・低は例。実績は国分寺市の実データ(2020〜2023年)。掲載終了=成約とは限らない。</p>`;
-  const t = $('#toast');
-  $('#ask').addEventListener('click', () => { t.textContent = '画面イメージのため、送信はされません'; t.hidden = false; });
-  $('#keep').addEventListener('click', () => { t.textContent = '「あとで見る」に追加しました(画面イメージ)'; t.hidden = false; });
+    </a>
+    <button class="heart" data-keep="${p.id}" aria-pressed="${kept}" aria-label="${kept?'キープから外す':'キープする'}">${ICON.heart}</button>
+  </article>`;
 }
 
-$('#search').addEventListener('submit', (e) => { e.preventDefault(); render(); });
-['#q-layout', '#q-rent', '#q-age'].forEach((s) => $(s).addEventListener('change', render));
-document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => {
-  filter = b.dataset.f;
-  document.querySelectorAll('.tab').forEach((c) => c.setAttribute('aria-pressed', String(c === b)));
-  render();
-}));
+function renderNav(cur){
+  return `<nav class="nav" aria-label="メイン">
+    <a href="#/" ${cur==='list'?'aria-current="page"':''}>${ICON.search.replace('width="20" height="20"','width="24" height="24"')}さがす</a>
+    <a href="#/keep" ${cur==='keep'?'aria-current="page"':''}>${ICON.heart}<span>キープ${state.keep.size?`<i>${state.keep.size}</i>`:''}</span></a>
+    <a href="#/my" ${cur==='my'?'aria-current="page"':''}>${ICON.user}マイページ</a>
+  </nav>`;
+}
+const demoBar = () => state.demoOpen ? `<div class="demo" role="note"><span>画面イメージです。物件と「終わりやすい・終わりにくい」の印は例です。</span><button data-demo="close" aria-label="この案内を閉じる">閉じる</button></div>` : '';
 
-render();
+function renderList(){
+  const all = LISTINGS.filter(p=>passFilter(p,true));
+  const cnt = {all:all.length, hi:all.filter(p=>p.level==='hi').length, lo:all.filter(p=>p.level==='lo').length};
+  const items = visible();
+  const seg = (k,l)=>`<button data-level="${k}" aria-pressed="${state.level===k}">${l}<small>${cnt[k]}</small></button>`;
+  return `${demoBar()}
+  <header class="top listtop">
+    <button class="search" data-open="filter" aria-label="検索条件を変更する。現在: ${esc(summary())}">${ICON.search}
+      <span class="t"><b>国分寺市周辺</b><span>${esc(summary())}</span></span></button>
+  </header>
+  <div class="seg" role="group" aria-label="終わりやすさで絞り込む">${seg('all','すべて')}${seg('hi','終わりやすい')}${seg('lo','終わりにくい')}</div>
+  <div class="wrap">
+  <aside class="side" aria-label="絞り込み"><div class="dh"><h2>条件</h2><button data-clear>クリア</button></div><div class="db">${filterFields()}</div></aside>
+  <div class="content">
+  <div class="bar">
+    <div class="n" aria-live="polite"><em>${items.length}</em> 件</div>
+    <label><span class="sr">並び替え</span><select class="sort" data-sort>${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${state.sort===k?'selected':''}>${v[0]}</option>`).join('')}</select></label>
+  </div>
+  <div class="legend"><b>1週間以内に掲載が終わりやすいかの目安です。</b>掲載が終わっても、成約したとは限りません。 <button data-open="help">くわしく</button></div>
+  ${items.length? `<div class="list">${items.map(card).join('')}</div>`
+    : `<div class="empty"><p>条件に合う物件がありません。</p><button data-reset>条件をゆるめる</button></div>`}
+  </div></div>
+  ${renderNav('list')}`;
+}
+
+function renderKeep(){
+  const items = LISTINGS.filter(p=>state.keep.has(p.id)).sort(SORTS[state.sort][1]);
+  const rows = items.map(p=>{const {s}=statsOf(p);return `<tr>
+    <td><a href="#/p/${p.id}"><b>${esc(p.layout)}</b> ${money(p)}万円<br><small>${esc(p.st[0][0])} 徒歩${p.st[0][1]}分</small></a></td>
+    <td>${badge(p.level)}</td><td>${p.days}日目</td><td>${s?dayText(s[2]):'―'}</td></tr>`}).join('');
+  return `${demoBar()}
+  <header class="top"><div style="padding:14px 16px 10px"><b style="font-size:16px">キープした物件</b></div></header>
+  ${items.length? `
+   <div class="bar"><div class="n"><em>${items.length}</em> 件</div>
+     <label><span class="sr">並び替え</span><select class="sort" data-sort>${Object.entries(SORTS).map(([k,v])=>`<option value="${k}" ${state.sort===k?'selected':''}>${v[0]}</option>`).join('')}</select></label></div>
+   <h2 class="h2">並べて比べる</h2>
+   <div class="cmp"><table><thead><tr><th>物件</th><th>目安</th><th>掲載から</th><th>同条件の過去<br>(半分が終了)</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <p class="note" style="margin:0 12px 6px">「同条件の過去」は、掲載を始めてから数えた過去の物件の日数で、この物件の予測ではありません。「終わりやすさ」とは数え方が違います。</p>
+   <div class="list">${items.map(card).join('')}</div>`
+  : `<div class="empty"><p>キープした物件はまだありません。<br>気になる物件のハートを押すと、ここで並べて比べられます。</p><a class="btn" style="display:inline-flex;align-items:center" href="#/">物件をさがす</a></div>`}
+  ${renderNav('keep')}`;
+}
+
+function renderMy(){
+  return `${demoBar()}<header class="top"><div style="padding:14px 16px 10px"><b style="font-size:16px">マイページ</b></div></header>
+  <div class="empty"><p>マイページは今後の開発対象です。キープした物件は「キープ」から確認できます。</p></div>${renderNav('my')}`;
+}
+
+function renderDetail(id){
+  const p = LISTINGS.find(x=>x.id===id);
+  if(!p) return `<div class="empty"><p>物件が見つかりません。</p><a class="btn" style="display:inline-flex;align-items:center" href="#/">一覧へ戻る</a></div>`;
+  const {s,cond}=statsOf(p), kept=state.keep.has(p.id);
+  const max = s ? Math.max(s[3],60) : 1;
+  const row=(label,d)=>{const tx=d<1?'当日':`約${d}日`;return `<div class="r"><span>${label}</span><div class="bar2" role="img" aria-label="${label}は${tx}までに終了" style="--w:${d/max}"><i></i><b>${tx}までに終了</b></div></div>`};
+  return `<div class="dgrid"><div class="dl"><div class="hero" style="background:linear-gradient(135deg,hsl(${p.hue} 35% 62%),hsl(${(p.hue+40)%360} 40% 48%))" aria-hidden="true">${esc(p.layout)}</div>
+    <button class="back backfix" data-back aria-label="一覧へ戻る">${ICON.back}</button>
+    <div class="sheet-top">
+      <h1>${money(p)}<small>万円</small></h1>
+      <p class="sub">${p.mgmt?`管理費 ${p.mgmt.toLocaleString()}円`:'管理費なし'} / 掲載から${p.days}日目</p>
+      <dl class="spec"><dt>間取り</dt><dd>${esc(p.layout)}・${p.area}㎡</dd><dt>築年数</dt><dd>築${p.age}年</dd><dt>階</dt><dd>${p.floor}階</dd>
+        <dt>最寄駅</dt><dd>${p.st.map(x=>`${esc(x[0])} 徒歩${x[1]}分`).join('<br>')}</dd></dl>
+    </div></div>
+    <div class="dr"><div class="panel">
+      <h2>終わりやすさの目安<button class="info" data-open="help" aria-label="目安についての説明を見る">${ICON.info}</button></h2>
+      <div class="mark ${p.level==='lo'?'lo':''}"><div class="row">${badge(p.level)}<span class="t">${p.level==='hi'?'1週間以内に掲載が終わりやすい物件です。':'1週間以内に掲載が終わりにくい物件です。'}</span></div>
+        <p class="note">掲載が終わっても、成約したとは限りません。</p>
+        <details class="more"><summary>くわしく見る</summary>
+          ${p.level==='hi'?'<p>15%は分類の境界であり、実際に終了する確率が一律85%という意味でもありません。</p>':''}
+          <p>この画面の高・低は例示用のラベルです。研究モデルの推論結果ではありません。実際の分類は予測確率15%を境界にする設計です。</p></details></div>
+      <div class="rec"><h3>同じ条件の過去の実績</h3>
+        ${s?`<p class="key">半分の物件が、${s[2]<1?'掲載当日':`約${s[2]}日`}までに終わりました。</p>
+          <details class="more"><summary>グラフと説明を見る</summary>
+            <p class="cond">${esc(cond)}</p>
+            <p class="lead">国分寺市で2020〜2023年に掲載された、同じ条件の物件 ${s[0].toLocaleString()}件を、掲載を始めた日から数えた日数です。</p>
+            ${row('半分の物件',s[2])}${row('4分の3の物件',s[3])}
+            <p class="note">この日数は掲載を始めた日からの数え方なので、「終わりやすい」物件でも、7日より長くなることがあります。過去の実際のデータで、この物件が何日で終わるかの予測ではありません。</p></details>`
+          :`<p class="note" style="margin:6px 0 0">データが少ない条件のため、表示しません。</p>`}</div>
+    </div></div></div>
+    <div class="cta"><button class="heart" data-keep="${p.id}" aria-pressed="${kept}" aria-label="${kept?'キープから外す':'キープする'}">${ICON.heart}</button>
+      <a class="btn" href="#/keep" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">キープした物件を見る</a></div>`;
+}
+
+/* ===== 絞り込み・ヘルプ ===== */
+function chipGroup(name, vals, setKey){
+  return `<div class="chips" role="group" aria-label="${name}">${vals.map(v=>`<button type="button" data-chip="${setKey}" data-v="${esc(v)}" aria-pressed="${state.f[setKey].has(v)}">${esc(v)}</button>`).join('')}</div>`;
+}
+function opt(list,cur,fmt){return list.map(v=>`<option value="${v}" ${cur===v?'selected':''}>${fmt(v)}</option>`).join('')}
+function filterFields(){
+  const f=state.f;
+  return `<section><h3>駅</h3>${chipGroup('駅',STATIONS,'stations')}</section>
+     <section><h3>間取り</h3>${chipGroup('間取り',LAYOUTS,'layouts')}</section>
+     <section><h3>家賃の上限</h3><select class="field" data-sel="rentMax" aria-label="家賃の上限">${opt([0,5,6,7,8,9,10,12,15],f.rentMax,v=>v?`${v}万円まで`:'指定なし')}</select></section>
+     <section><h3>築年数</h3><select class="field" data-sel="ageMax" aria-label="築年数">${opt([0,5,10,15,20,30],f.ageMax,v=>v?`築${v}年以内`:'指定なし')}</select></section>
+     <section><h3>駅までの徒歩</h3><select class="field" data-sel="walkMax" aria-label="駅までの徒歩">${opt([0,5,7,10,15],f.walkMax,v=>v?`${v}分以内`:'指定なし')}</select></section>`;
+}
+function renderFilter(){
+  $('#filterDlg').innerHTML = `
+   <div class="dh"><button data-clear>クリア</button><h2 id="fh">条件を変更</h2><button data-close="filterDlg" aria-label="閉じる">✕</button></div>
+   <div class="db">${filterFields()}</div>
+   <div class="dfoot"><button class="btn" data-close="filterDlg" aria-live="polite">この条件で見る(${visible().length}件)</button></div>`;
+}
+function renderHelp(){
+  const it=(ic,h,t)=>`<div class="helpitem"><div class="ic">${ic}</div><div><h3>${h}</h3><p>${t}</p></div></div>`;
+  $('#helpDlg').innerHTML = `
+   <div class="dh"><h2 id="hh">終わりやすさの目安について</h2><button data-close="helpDlg" aria-label="閉じる">✕</button></div>
+   <div class="db">
+     <p style="margin:0 0 16px;font-weight:700">お部屋探しで、問い合わせの順番を考えるための参考情報です。</p>
+     ${it(ICON.up,'「終わりやすい」と「終わりにくい」とは','条件から、1週間以内に掲載が終わる確率を計算し、15%以上を「終わりやすい」、未満を「終わりにくい」にしています。確率の数字は出しません。')}
+     ${it(ICON.clock,'「終わりやすい」でも、すぐには終わりません','15%は分類の境界であり、高と表示された物件が必ず1週間で掲載終了するという意味ではありません。')}
+     ${it(ICON.info,'掲載の終了は、成約とは限りません','掲載が終わっても、誰かが契約したとは限りません。管理会社の都合などで取り下げられた場合も含まれる可能性があります。')}
+     ${it(ICON.user,'決めるのはあなたです','急いで問い合わせるかどうかは、希望の条件やペースに合わせて決めてください。')}
+     ${it(ICON.home,'同じ条件の過去の実績','同じ間取り・築年数・家賃帯の過去の物件が、掲載を始めてから何日で終わったかの実際の数字です。「終わりやすさ」は今日から先の1週間の目安なので、数え方が違います。この物件の予測ではありません。')}
+   </div>
+   <div class="dfoot"><button class="btn" data-close="helpDlg">閉じる</button></div>`;
+}
+
+/* ===== ルーティング ===== */
+function route(){
+  const h = location.hash || '#/';
+  const app = $('#app');
+  const m = h.match(/^#\/p\/(\d+)$/);
+  const prevDetail = app.classList.contains('detail');
+  if(!prevDetail) state.listScroll = window.scrollY;
+  if(m){ app.className='detail'; app.innerHTML = renderDetail(+m[1]); window.scrollTo(0,0); document.title='物件の詳細 - すぐ埋まる？ナビ'; return; }
+  app.className='';
+  if(h==='#/keep'){ app.innerHTML=renderKeep(); document.title='キープ - すぐ埋まる？ナビ'; }
+  else if(h==='#/my'){ app.innerHTML=renderMy(); document.title='マイページ - すぐ埋まる？ナビ'; }
+  else { app.innerHTML=renderList(); document.title='すぐ埋まる？ナビ - 画面イメージ'; }
+  window.scrollTo(0, prevDetail ? state.listScroll : 0);
+}
+const rerender = () => { const y=window.scrollY; route(); window.scrollTo(0,y); };
+window.addEventListener('hashchange', ()=>{ state.inApp=true; route(); });
+
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+function toggleKeep(id){
+  state.keep.has(id)?state.keep.delete(id):state.keep.add(id);
+  store.set('keep',[...state.keep]);
+  toast(state.keep.has(id)?'キープしました':'キープから外しました');
+  rerender();
+}
+
+/* ===== イベント ===== */
+document.addEventListener('click', e=>{
+  const t = e.target.closest('[data-keep],[data-level],[data-open],[data-close],[data-back],[[data-demo],[data-reset],[data-clear],[data-chip]');
+  if(e.target.tagName==='DIALOG'){ e.target.close(); return; }
+  if(!t) return;
+  if(t.dataset.keep){ e.preventDefault(); toggleKeep(+t.dataset.keep); }
+  else if(t.dataset.level){ state.level=t.dataset.level; rerender(); }
+  else if(t.dataset.open==='filter'){ renderFilter(); $('#filterDlg').showModal(); }
+  else if(t.dataset.open==='help'){ renderHelp(); $('#helpDlg').showModal(); }
+  else if(t.dataset.close){ $('#'+t.dataset.close).close(); }
+  else if('back' in t.dataset){ state.inApp ? history.back() : (location.hash='#/'); }
+  else if(t.dataset.demo){ state.demoOpen=false; store.set('demoOpen',false); rerender(); }
+  else if('reset' in t.dataset){ state.f={layouts:new Set(),stations:new Set(),rentMax:0,ageMax:0,walkMax:0}; state.level='all'; rerender(); }
+  else if('clear' in t.dataset){ state.f={layouts:new Set(),stations:new Set(),rentMax:0,ageMax:0,walkMax:0}; renderFilter(); rerender(); }
+  else if(t.dataset.chip){ const s=state.f[t.dataset.chip], v=t.dataset.v; s.has(v)?s.delete(v):s.add(v); const inSide=!!t.closest('.side'); renderFilter(); rerender();
+    const q=`${inSide?'.side ':'#filterDlg '}[data-chip="${t.dataset.chip}"][data-v="${v}"]`; document.querySelector(q)?.focus(); }
+});
+document.addEventListener('change', e=>{
+  if(e.target.matches('[data-sort]')){ state.sort=e.target.value; rerender(); }
+  else if(e.target.matches('[data-sel]')){ const k=e.target.dataset.sel, inSide=!!e.target.closest('.side'); state.f[k]=+e.target.value; renderFilter(); rerender();
+    document.querySelector(`${inSide?'.side ':'#filterDlg '}[data-sel="${k}"]`)?.focus(); }
+});
+route();
 </script>
-
-
-</body></html>
+</body>
+</html>
