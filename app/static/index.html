@@ -64,6 +64,56 @@ input[type=checkbox]{width:auto;min-height:auto;accent-color:var(--wine)}
 footer{max-width:1130px;margin:auto;padding:22px 20px 32px;color:#7a8190;font-size:12px}
 @media(max-width:780px){main{padding:17px 12px 100px}.header-inner{padding:9px 12px;min-height:66px}.logo{font-size:18px}.logo small{font-size:9px}nav{gap:0}nav a{padding:7px 8px;font-size:11px}.hero{padding:20px;border-radius:16px}.hero .bubble{display:none}.layout{grid-template-columns:1fr;gap:13px;margin-top:14px}.panel{position:static;padding:14px}.filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 11px}.results{grid-template-columns:1fr;gap:11px}.detail-card,.form-card,.compare-box{padding:18px}.kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.kpi{padding:10px 7px}.kpi b{font-size:19px}.kpi span{font-size:10px}}
 @media(max-width:440px){nav a{font-size:10px;padding:6px 5px}.header-inner{gap:6px}.logo{font-size:16px}.tile{padding:15px}.form-grid{grid-template-columns:1fr}.hero h1{font-size:23px}}
+
+/* Property-search layout: reference-inspired desktop cards and mobile flow */
+body{background:#f3f4f6;color:#1f2937}
+header{box-shadow:0 1px 0 #e5e7eb}
+main{max-width:1130px;padding:14px 16px 80px}
+.layout{grid-template-columns:280px minmax(0,1fr);gap:16px;margin-top:14px}
+.panel{top:88px;padding:17px 16px;border-radius:15px;max-height:calc(100vh - 110px);overflow:auto}
+.panel h2{display:flex;justify-content:space-between;align-items:center;font-size:17px}
+.panel h2 .reset{font-size:13px}
+.field{margin:13px 0}
+.field label{font-size:13px;color:#273244}
+.filter-grid{display:block}
+.filter-chip-group{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 19px}
+.filter-choice{border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:8px 13px;min-height:42px;font-size:13px;font-weight:650;color:#253142}
+.filter-choice[aria-pressed=true]{color:var(--wine);border-color:var(--wine);background:#fdf2f5}
+.filters-subtitle{font-size:12px;font-weight:700;color:#475569;margin:18px 0 8px}
+.chips{gap:6px;margin:8px 0 14px}
+.chip{border-radius:10px;min-height:40px}
+.section-head{background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:12px}
+.section-head h2{font-size:17px}
+.section-head .small{font-size:12px}
+.section-head select{min-height:42px}
+.search-guide{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#4b5563}
+.search-guide b{color:#1f2937}
+.results{gap:14px}
+.tile{position:relative;border-radius:17px;overflow:hidden;padding:0;box-shadow:none;min-height:315px}
+.tile:hover{border-color:#d7c6cc;transform:translateY(-2px)}
+.property-cover{height:130px;background:linear-gradient(128deg,#bf9886,#b4ae4d);display:flex;align-items:center;justify-content:center;color:#fff;font-size:29px;font-weight:800;letter-spacing:.04em}
+.tile:nth-child(4n+2) .property-cover{background:linear-gradient(135deg,#bd8095,#ab6b4f)}
+.tile:nth-child(4n+3) .property-cover{background:linear-gradient(135deg,#b97b9f,#b45259)}
+.tile:nth-child(4n+4) .property-cover{background:linear-gradient(135deg,#ac81be,#a65294)}
+.property-heart{position:absolute;right:10px;top:10px;width:45px;height:45px;border:0;border-radius:50%;background:#ffffffed;color:#6b7280;display:grid;place-items:center;font-size:26px;line-height:1;box-shadow:0 2px 5px #00000011}
+.property-heart[aria-pressed=true]{color:var(--wine)}
+.property-main{padding:13px 14px 14px;display:flex;flex-direction:column;flex:1}
+.property-main .price{margin:0 0 8px;font-size:22px;color:#1f2937}
+.property-main .price small{font-size:12px;font-weight:500}
+.property-chips{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 11px}
+.property-chips span{padding:2px 8px;border-radius:6px;background:#f3f4f6;font-size:12px;color:#525e70}
+.property-note{color:#637083;font-size:12px;margin:0 0 12px}
+.property-foot{display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid #eef0f2;padding-top:11px;margin-top:auto}
+.property-foot .tag{padding:5px 8px}
+.property-action{font-size:13px;color:var(--wine);font-weight:750;text-decoration:underline;text-underline-offset:2px}
+.property-foot .foot-caption{color:#6b7280;font-size:11px;white-space:nowrap}
+.hero{padding:14px 20px;border-radius:14px;box-shadow:none}
+.hero h1{font-size:18px;margin:0 0 3px}
+.hero p{font-size:13px;max-width:none}
+.tag.high{background:#fff1f4}.tag.low{background:#f3f4f6}
+@media(max-width:780px){main{padding:12px 12px 90px}.layout{grid-template-columns:1fr}.panel{position:static;max-height:none}.results{grid-template-columns:repeat(2,minmax(0,1fr))}.filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}}
+@media(max-width:580px){.results{grid-template-columns:1fr}.property-cover{height:145px}.section-head{align-items:start}.section-head .small{width:100%}.section-head select{width:100%}.filter-grid{display:block}}
+
 </style>
 </head>
 <body>
@@ -97,21 +147,25 @@ function filtered(){
  return a.sort((x,y)=>state.sort==='rate'?y.day12_next7_rate-x.day12_next7_rate:state.sort==='median'?x.median_days-y.median_days:state.sort==='rent'?parseInt(x.rent_band)-parseInt(y.rent_band):y.count-x.count);
 }
 function card(g){
- return '<article class="tile"><div class="tile-top"><div><h3>'+esc(g.layout)+'のお部屋</h3></div>'+badge(g)+'</div>'+
- '<div class="property-facts"><div><small>間取り</small><strong>'+esc(g.layout)+'</strong></div><div><small>築年数</small><strong>'+esc(g.age_band)+'</strong></div><div><small>家賃</small><strong>'+esc(g.rent_band)+'万円</strong></div></div>'+
- '<div class="tile-buttons"><a class="btn" href="#/group/'+g.id+'">分析を見る</a><button type="button" class="btn alt save" data-save="'+g.id+'" aria-label="'+(saved.has(g.id)?'お気に入りから削除':'お気に入りに追加')+'" aria-pressed="'+saved.has(g.id)+'">'+(saved.has(g.id)?'♥':'♡')+'</button></div></article>';
+ const status=badge(g);
+ return '<article class="tile"><div class="property-cover" aria-hidden="true">'+esc(g.layout)+'</div>'+
+ '<button type="button" class="property-heart" data-save="'+g.id+'" aria-label="'+(saved.has(g.id)?'お気に入りから削除':'お気に入りに追加')+'" aria-pressed="'+saved.has(g.id)+'">'+(saved.has(g.id)?'♥':'♡')+'</button>'+
+ '<div class="property-main"><div class="price">'+esc(g.rent_band)+'<small>万円（家賃帯）</small></div>'+
+ '<div class="property-chips"><span>'+esc(g.layout)+'</span><span>築'+esc(g.age_band)+'</span><span>家賃 '+esc(g.rent_band)+'万円</span></div>'+
+ '<p class="property-note">国分寺市周辺・同条件の掲載傾向</p>'+
+ '<div class="property-foot"><span class="foot-caption">1週間以内に</span>'+status+'<a class="property-action" href="#/group/'+g.id+'">分析を見る</a></div></div></article>';
 }
 function home(){
  navRender('#/');
  app.innerHTML='<section class="hero"><div><h1>あなたに合うお部屋を、<br>条件から探そう</h1><p>間取り・築年数・家賃でお部屋の条件を探せます。「終わりやすい」「終わりにくい」は、今後1週間以内に掲載が終了しやすいかの目安です。</p></div></section>'+
- '<div class="layout"><aside class="panel"><h2>希望の条件を選ぶ</h2><div class="filter-grid">'+
+ '<div class="layout"><aside class="panel"><h2>条件 <button class="reset" id="resetFilters">クリア</button></h2><div class="filter-grid">'+
  '<div class="field"><label for="filterSearch">キーワード</label><input id="filterSearch" placeholder="例：1K / 6〜8" value="'+esc(state.search)+'"></div>'+
- '<div class="field"><label for="filterLayout">間取り</label><select id="filterLayout">'+optionHtml(unique('layout'),state.layout)+'</select></div>'+
+ '<div class="field"><label>間取り</label><div class="filter-chip-group">'+unique('layout').filter(v=>v!=='すべて').map(v=>'<button class="filter-choice" type="button" data-layout="'+esc(v)+'" aria-pressed="'+(state.layout===v)+'">'+esc(v)+'</button>').join('')+'</div></div>'+
  '<div class="field"><label for="filterAge">築年数</label><select id="filterAge">'+optionHtml(unique('age_band'),state.age)+'</select></div>'+
  '<div class="field"><label for="filterRent">家賃帯</label><select id="filterRent">'+optionHtml(unique('rent_band'),state.rent)+'</select></div>'+
  '</div><div class="chips" role="group" aria-label="掲載の終わりやすさ"><button class="chip '+(state.level==='すべて'?'active':'')+'" data-level="すべて">すべて</button><button class="chip '+(state.level==='hi'?'active':'')+'" data-level="hi">終わりやすい</button><button class="chip '+(state.level==='lo'?'active':'')+'" data-level="lo">終わりにくい</button></div>'+
- '<label class="small"><input type="checkbox" id="onlySaved" '+(state.onlySaved?'checked':'')+'> お気に入りだけ</label><div style="margin-top:15px"><button class="reset" id="resetFilters">絞り込みをリセット</button></div></aside>'+
- '<section><div class="section-head"><div><h2>検索結果</h2></div><label class="small">表示する順番 <select id="sort" style="min-width:180px"><option value="count">データが多い順</option><option value="rate">終わりやすい順</option><option value="median">掲載終了までが早い順</option><option value="rent">家賃が安い順</option></select></label></div><div class="results" id="results"></div></section></div>';
+ '<label class="small"><input type="checkbox" id="onlySaved" '+(state.onlySaved?'checked':'')+'> お気に入りだけ</label></aside>'+
+ '<section><div class="section-head"><h2>検索結果</h2><label class="small">並び替え <select id="sort" style="min-width:180px"><option value="count">データが多い順</option><option value="rate">終わりやすい順</option><option value="median">掲載終了までが早い順</option><option value="rent">家賃が安い順</option></select></label></div><div class="search-guide"><b>1週間以内に掲載が終わりやすいかの目安です。</b> 掲載終了は成約と同じ意味ではありません。</div><div class="results" id="results"></div></section></div>';
  document.getElementById('sort').value=state.sort;
  updateResults();
 }
@@ -167,6 +221,8 @@ async function loadGroups(){
 document.addEventListener('click',event=>{
  const save=event.target.closest('[data-save]');
  if(save){const id=Number(save.dataset.save);saved.has(id)?saved.delete(id):saved.add(id);localStorage.setItem('riskSaved',JSON.stringify([...saved]));render();return;}
+ const layoutChoice=event.target.closest('[data-layout]');
+ if(layoutChoice){state.layout=state.layout===layoutChoice.dataset.layout?'すべて':layoutChoice.dataset.layout;home();return;}
  const level=event.target.closest('[data-level]');
  if(level){state.level=level.dataset.level;home();return;}
  if(event.target.closest('#resetFilters')){Object.assign(state,{layout:'すべて',age:'すべて',rent:'すべて',level:'すべて',search:'',sort:'count',onlySaved:false});home();return;}
