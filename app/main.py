@@ -1,6 +1,7 @@
 """すぐ埋まる？ナビ: 発表用 Web デモ。個別予測は学習済みモデルの配置後に有効化。"""
 from pathlib import Path
 import csv
+import logging
 import sys
 from functools import lru_cache
 from fastapi import FastAPI, HTTPException
@@ -14,6 +15,7 @@ MODEL_CANDIDATES = [
     HERE / "models" / "final_model2_age_layout.joblib",
     OHORI / "results" / "07_final_test" / "final_model2_age_layout.joblib",
 ]
+logger = logging.getLogger("uvicorn.error")
 app = FastAPI(title="すぐ埋まる？ナビ", version="0.1.0")
 
 
@@ -115,7 +117,12 @@ def home():
 
 @app.get("/api/status")
 def status():
-    return {"model_ready": any(p.is_file() for p in MODEL_CANDIDATES), "historical_risk_ready": True, "mode": "model-if-available-else-historical", "threshold": 0.15}
+    import sklearn
+    selected = next((p for p in MODEL_CANDIDATES if p.is_file()), None)
+    return {"model_ready": selected is not None, "model_path": str(selected) if selected else None,
+            "sklearn_version": sklearn.__version__,
+            "historical_risk_ready": True, "mode": "model-if-available-else-historical",
+            "threshold": 0.15}
 
 
 @app.post("/api/predict")
@@ -123,7 +130,8 @@ def predict(request: PredictionRequest):
     try:
         values = _predict_probabilities(request.properties)
     except Exception as error:
-        raise HTTPException(status_code=500, detail=f"モデル推論に失敗: {type(error).__name__}") from error
+        logger.exception("Prediction error (model loading or inference)")
+        raise HTTPException(status_code=500, detail=f"モデル推論に失敗: {type(error).__name__}: {str(error)[:240]}") from error
     if values is None:
         raise HTTPException(status_code=503, detail="学習済みModel 2がありません。Ohori/results/07_final_test/final_model2_age_layout.joblib に配置してください。")
     return {
@@ -173,7 +181,8 @@ def analyze_property(request: AnalyzeRequest):
     try:
         values = _predict_probabilities([prop])
     except Exception as error:
-        raise HTTPException(status_code=500, detail=f"学習済みモデルによる分析に失敗: {type(error).__name__}") from error
+        logger.exception("Property analysis model inference error")
+        raise HTTPException(status_code=500, detail=f"学習済みモデルによる分析に失敗: {type(error).__name__}: {str(error)[:240]}") from error
 
     if values is not None:
         risk = values[0]
