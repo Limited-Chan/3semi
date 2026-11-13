@@ -405,6 +405,7 @@ function renderDetail(id){
             ${row('半分の物件',s[2])}${row('4分の3の物件',s[3])}
             <p class="note">この日数は掲載を始めた日からの数え方なので、「終わりやすい」物件でも、7日より長くなることがあります。過去の実際のデータで、この物件が何日で終わるかの予測ではありません。</p></details>`
           :`<p class="note" style="margin:6px 0 0">データが少ない条件のため、表示しません。</p>`}</div>
+      <div class="rec"><h3>掲載12日目からの過去実績</h3><div id="historical-api" class="note">集計データを読み込み中...</div></div>
     </div></div></div>
     <div class="cta"><button class="heart" data-keep="${p.id}" aria-pressed="${kept}" aria-label="${kept?'キープから外す':'キープする'}">${ICON.heart}</button>
       <a class="btn" href="#/keep" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">キープした物件を見る</a></div>`;
