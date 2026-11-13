@@ -129,7 +129,7 @@ dl.spec dt{color:var(--mute)}dl.spec dd{margin:0}
 .cta{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid var(--line);
   padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;z-index:30}
 .cta .heart{position:static;box-shadow:none;border:1px solid var(--line);border-radius:12px;width:56px;height:52px;background:#fff}
-.cta .btn{flex:1;min-height:52px;font-size:16px}
+.cta .btn{flex:1;min-height:52px;font-size:16px;display:flex;align-items:center;justify-content:center;padding:12px 20px;text-align:center;line-height:1.4}
 
 /* キープ比較 */
 .cmp{margin:0 12px 12px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
@@ -192,11 +192,12 @@ dialog.full{position:fixed;inset:0;margin:0 auto;width:100%;max-width:480px;heig
   .cmp{margin:0 16px 12px}.h2,.note[style]{margin-left:16px!important}
   #app>.list{padding:14px 16px}
   .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;align-items:start}
+  .left-column{display:flex;flex-direction:column;gap:12px;min-width:0}
   .dl,.dr{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
   .hero{height:300px}
   .sheet-top{margin-top:0;border-radius:0}
   .backfix{top:76px;left:max(28px,calc(50% - 530px))}
-  .cta{position:static;bottom:auto;left:auto;transform:none;width:auto;max-width:none;margin:0 16px 20px;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.035)}
+  .cta{position:static;bottom:auto;left:auto;transform:none;width:auto;max-width:none;margin:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.035)}
   dialog.full,dialog.sheet{inset:0;margin:auto;width:560px;max-width:92vw;height:auto;max-height:86dvh;border-radius:16px}
   #toast{bottom:40px}
 }
@@ -306,11 +307,14 @@ function detail(id){
  const max=Math.max(g.three_quarter_days,60);
  const row=(txt,d)=>'<div class="r"><span>'+txt+'</span><div class="bar2" role="img" aria-label="'+txt+'は約'+d+'日までに終了" style="--w:'+(d/max)+'"><i></i><b>約'+d+'日までに終了</b></div></div>';
  app.className='detail';
- app.innerHTML='<div class="dgrid"><div class="dl"><div class="hero" style="background:'+gradient(g)+'" aria-hidden="true">'+esc(g.layout)+'</div>'+
+ app.innerHTML='<div class="dgrid"><div class="left-column"><div class="dl"><div class="hero" style="background:'+gradient(g)+'" aria-hidden="true">'+esc(g.layout)+'</div>'+
  '<button class="back backfix" data-back aria-label="一覧へ戻る">'+ICON.down+'</button>'+
  '<div class="sheet-top"><h1>'+moneyBand(g)+'<small>万円（家賃帯）</small></h1>'+
  '<p class="sub">同条件の掲載傾向 / 掲載12日目を基準</p>'+
  '<dl class="spec"><dt>間取り</dt><dd>'+esc(g.layout)+'</dd><dt>築年数</dt><dd>築'+esc(g.age_band)+'</dd><dt>家賃</dt><dd>'+moneyBand(g)+'万円</dd><dt>対象地域</dt><dd>国分寺市</dd></dl></div></div>'+
+ /* CTA rendered immediately under the left property panel */
+ /* 
+ '<button class="btn" type="button" data-inquire>申し込む</button></div></div>'+
  '<div class="dr"><div class="panel"><h2>終わりやすさの目安<button class="info" data-open="help" aria-label="目安についての説明を見る">ⓘ</button></h2>'+
  '<div class="mark '+(g.level==='lo'?'lo':'')+'"><div class="row">'+badge(g)+'<span class="t">1週間以内に掲載が'+(g.level==='hi'?'終わりやすい':'終わりにくい')+'条件です。</span></div>'+
  '<p class="note">掲載が終わっても、成約したとは限りません。</p>'+
@@ -320,9 +324,9 @@ function detail(id){
  '<details class="more"><summary>グラフと説明を見る</summary><p class="cond">'+esc(label(g))+'</p>'+
  '<p class="lead">国分寺市で2020〜2023年に掲載された、同じ条件の物件 '+number(g.count)+'件を、掲載を始めた日から数えた日数です。</p>'+
  row('半分の物件',g.median_days)+row('4分の3の物件',g.three_quarter_days)+
- '<p class="note">この日数は過去の掲載実績です。この条件に当てはまる現在の物件が成約するかどうかを予測するものではありません。</p></details></div></div></div></div>'+
+ '<p class="note">この日数は過去の掲載実績です。この条件に当てはまる現在の物件が成約するかどうかを予測するものではありません。</p></details></div></div></div></div>';
  '<div class="cta"><button class="heart" data-save="'+g.id+'" aria-pressed="'+saved.has(g.id)+'" aria-label="'+(saved.has(g.id)?'お気に入りから外す':'お気に入りに追加')+'">'+ICON.heart+'</button>'+
- '<a class="btn" href="#/saved">お気に入りを見る</a></div>';
+ */
 }
 function render(){
  const h=location.hash||'#/';
@@ -344,6 +348,7 @@ document.addEventListener('click',function(event){
  const closer=event.target.closest('[data-close]');
  if(closer){document.getElementById(closer.dataset.close).close();return;}
  if(event.target.closest('[data-back]')){location.hash='#/';return;}
+ if(event.target.closest('[data-inquire]')){window.alert('このアプリでは実際の物件の申し込みは受け付けていません。');return;}
  if(event.target.closest('[data-clear],[data-reset]')){Object.assign(state,{layout:'すべて',age:'すべて',rent:'すべて',level:'すべて',search:'',sort:'count',onlySaved:false});render();if(document.getElementById('filterDlg').open)renderFilter();return;}
  if(event.target.closest('#retry')){loadGroups();return;}
 });
