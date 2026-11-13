@@ -79,12 +79,13 @@ def note(fig_name: str, item: str, value: float) -> None:
 # スライドに貼る幅(px、1920幅のスライド)。図の幅(150dpiでのpx)から引く。どの図も、スライド上で同じ大きさの文字(約30px)になるようにする
 DISPLAY_W = {1664: 1664, 1100: 1590, 1130: 1491, 900: 1118, 1000: 1292, 860: 1094, 700: 765}
 TARGET_PX = 30
+BIG_PX = 36  # 文字を大きくしたい図(31b・31c1・31c2・31g・31f)だけ使う
 
 
-def new(w: int, h: int, ncols: int = 1, ratios=None):
+def new(w: int, h: int, ncols: int = 1, ratios=None, target: int | None = None):
     global FS
     if TALK:
-        pt = TARGET_PX / (DISPLAY_W.get(w, w) / w) * 72 / 150
+        pt = (target or TARGET_PX) / (DISPLAY_W.get(w, w) / w) * 72 / 150
         FS = pt / 12.5
         plt.rcParams.update({"font.size": pt, "axes.labelsize": pt, "axes.titlesize": pt, "xtick.labelsize": pt, "ytick.labelsize": pt, "legend.fontsize": pt * 0.96})
     return plt.subplots(1, ncols, figsize=(w / DPI, h / DPI), gridspec_kw={"width_ratios": ratios} if ratios else None)
@@ -326,7 +327,7 @@ def fig_horizon(c23: pd.DataFrame) -> None:
         note("31b", f"{h}日 上位30%は残りの何倍", R[-1][0])
         note("31b", f"{h}日 上位30%は残りの何倍 95%区間 下", R[-1][1])
         note("31b", f"{h}日 上位30%は残りの何倍 95%区間 上", R[-1][2])
-    fig, ax = new(1100, 420, 2)
+    fig, ax = new(1100, 420, 2, target=BIG_PX)
     for a, vals, ylab, ylim, ref in [(ax[0], A, "AUC(似た物件どうし)", (0.49, 0.60), 0.5), (ax[1], R, "上位30% ÷ 残り(倍)", (1.0, 2.3), None)]:
         for i, (v, lo, hi) in enumerate(vals):
             dot_ci(a, i, v, lo, hi, color=(HI if i == 0 else BASE) if TALK else DARK)
@@ -336,9 +337,9 @@ def fig_horizon(c23: pd.DataFrame) -> None:
         a.set_ylim(*ylim)
         a.set_xticks(range(3))
         a.set_xticklabels(["7日", "14日", "30日"])
-        a.set_ylabel(("AUC" if ylab.startswith("AUC") else "倍率(倍)") if TALK else ylab)
+        a.set_ylabel(("AUC" if ylab.startswith("AUC") else "倍") if TALK else ylab)
     panel(ax[0], "(a) 似た物件どうしのAUC" if TALK else "(a)")
-    panel(ax[1], "(b) 上位30%の掲載終了率は残りの何倍か" if TALK else "(b)")
+    panel(ax[1], "(b) 上位30%÷残り" if TALK else "(b)")
     if TALK:
         ax[0].text(2.45, 0.503, "でたらめ(0.5)", ha="right", va="bottom", fontsize=11 * FS, color="#555555")
     fig.tight_layout()
@@ -384,7 +385,7 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
                 note("31c", f"{yname} {nm} {g}の割合(%)", 100 * (lv == i).mean())
     COL = {"低": PALE, "中": BASE, "高": HI} if TALK else {"低": LIGHT, "中": MIDC, "高": DARK}
     sets = [(c23, "2023年"), (c24, "2024年1〜3月")]
-    fig, ax = new(1130, 470, 2)
+    fig, ax = new(1130, 470, 2, target=BIG_PX)
     for a, (d, yname), pl in zip(ax, sets, ["(a) 2023年", "(b) 2024年1〜3月"]):
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
         x0, ticks, labs = 0, [], []
@@ -399,19 +400,19 @@ def fig_levels(c22: pd.DataFrame, c23: pd.DataFrame, c24: pd.DataFrame) -> None:
                 a.text(xx, r + 0.5, f"{r:.1f}", ha="center", fontsize=10.5 * FS)
                 ticks.append(xx)
                 labs.append({u"低": u"終わり\nにくい", u"中": u"中間", u"高": u"終わり\nやすい"}[names[i]] if TALK else names[i])
-            a.text(xs.mean(), -0.38 if TALK else -0.19, nm, ha="center", transform=a.get_xaxis_transform())
+            a.text(xs.mean(), -0.5 if TALK else -0.19, nm, ha="center", transform=a.get_xaxis_transform())
             x0 = xs[-1] + 1.6
         a.set_xticks(ticks)
-        a.set_xticklabels(labs)
+        a.set_xticklabels(labs, fontsize=(plt.rcParams["xtick.labelsize"] * 0.74) if TALK else None)
         a.set_ylim(0, 30)
         a.set_title(pl, loc="left", fontsize=12 * FS)
     ax[0].set_ylabel("掲載終了率(%)" if TALK else "7日以内に終わった割合(%)")
     fig.tight_layout(w_pad=3.0)
-    fig.subplots_adjust(bottom=0.36 if TALK else 0.2)
+    fig.subplots_adjust(bottom=0.42 if TALK else 0.2)
     save(fig, "31c1_levels_rates.png")
 
     rows = [("分けない(確率そのまま)", "o", None), ("3グループ版", "s", cuts["3グループ版"]), ("2グループ版(比較用)", "^", cuts["2グループ版"]), ("2グループ版(15%・採用)", "D", [T])]
-    fig, b = new(900, 450)
+    fig, b = new(900, 450, target=BIG_PX)
     offs = [-0.27, -0.09, 0.09, 0.27]
     for i, (d, yname) in enumerate(sets):
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
@@ -457,7 +458,7 @@ def pair_V(d: pd.DataFrame, t: float) -> float:
 
 def fig_boundary(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     grid = [0.06, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.30]
-    fig, a = new(900, 460) if TALK else new(820, 340)
+    fig, a = new(900, 460, target=BIG_PX) if TALK else new(820, 340)
     for d, color, mk, nm in [(c22, MIDC, "s", "2022年"), (c23, DARK, "o", "2023年")]:
         lab = {"2022年": "2022年(決めた年)", "2023年": "2023年(確認)"}[nm] if TALK else nm
         v = [100 * pair_V(d, t) for t in grid]
@@ -613,7 +614,7 @@ def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
 
 # ---------- 31f 2024年1〜3月 ----------
 def fig_holdout(c23: pd.DataFrame, c24: pd.DataFrame) -> None:
-    fig, a = new(860, 460)
+    fig, a = new(860, 460, target=BIG_PX)
     for i, (d, nm) in enumerate([(c23, "2023年"), (c24, "2024年1〜3月")]):
         p, y = d["base_7"].to_numpy(), d["target_7"].to_numpy()
         hi = p >= T
