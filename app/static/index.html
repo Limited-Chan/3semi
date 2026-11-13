@@ -322,9 +322,9 @@ function card(p){
 
 function renderNav(cur){
   return `<nav class="nav" aria-label="メイン">
-    <a href="#/" ${cur==='list'?'aria-current="page"':''}>${ICON.search.replace('width="20" height="20"','width="24" height="24"')}さがす</a>
+    <a href="#/" ${cur==='analyze'?'aria-current="page"':''}>${ICON.clock}物件を分析</a>
+    <a href="#/samples" ${cur==='samples'?'aria-current="page"':''}>${ICON.home}サンプル一覧</a>
     <a href="#/keep" ${cur==='keep'?'aria-current="page"':''}>${ICON.heart}<span>キープ${state.keep.size?`<i>${state.keep.size}</i>`:''}</span></a>
-    <a href="#/analyze" ${cur==='analyze'?'aria-current="page"':''}>${ICON.clock}物件を分析</a>
   </nav>`;
 }
 const demoBar = () => state.demoOpen ? `<div class="demo" role="note"><span>物件情報はデモ用です。掲載終了リスクの高・低は研究の過去実績から自動計算しています。</span><button data-demo="close" aria-label="この案内を閉じる">閉じる</button></div>` : '';
@@ -334,7 +334,7 @@ function renderList(){
   const cnt = {all:all.length, hi:all.filter(p=>p.level==='hi').length, lo:all.filter(p=>p.level==='lo').length};
   const items = visible();
   const seg = (k,l)=>`<button data-level="${k}" aria-pressed="${state.level===k}">${l}<small>${cnt[k]}</small></button>`;
-  return `${demoBar()}
+  return `${demoBar()}<div class="legend"><b>ここは架空の11件による画面操作用のサンプルです。</b> 研究で使用した国分寺市の22,332件の個別物件一覧ではありません。 <a href="#/" style="color:var(--brand);font-weight:700;text-decoration:underline">実際に物件条件を入力して分析する</a></div>
   <header class="top listtop">
     <button class="search" data-open="filter" aria-label="検索条件を変更する。現在: ${esc(summary())}">${ICON.search}
       <span class="t"><b>国分寺市周辺</b><span>${esc(summary())}</span></span></button>
@@ -351,7 +351,7 @@ function renderList(){
   ${items.length? `<div class="list">${items.map(card).join('')}</div>`
     : `<div class="empty"><p>条件に合う物件がありません。</p><button data-reset>条件をゆるめる</button></div>`}
   </div></div>
-  ${renderNav('list')}`;
+  ${renderNav('samples')}`;
 }
 
 function renderKeep(){
@@ -374,8 +374,7 @@ function renderKeep(){
 
 function renderAnalyze(){
   const input=(key,label,value,min,max,step='1')=>`<label style="display:block;margin-bottom:13px;font-weight:600">${label}<input class="field" name="${key}" type="number" min="${min}" max="${max}" step="${step}" required value="${value}" style="display:block;margin-top:5px"></label>`;
-  return `${demoBar()}
-    <header class="top"><div style="padding:16px"><b style="font-size:19px;color:var(--brand)">気になる物件を分析</b><p class="note">物件の条件を入力すると、掲載終了リスクと問い合わせを検討するための情報を確認できます。</p></div></header>
+  return `<header class="top"><div style="padding:16px"><b style="font-size:19px;color:var(--brand)">気になる物件を分析</b><p class="note">気になる賃貸物件の条件を入力すると、7日以内の掲載終了リスクと問い合わせを検討するための情報を確認できます。架空の11件から選ぶ必要はありません。</p></div></header>
     <div style="max-width:760px;width:100%;margin:16px auto;padding:0 12px 32px">
       <section class="panel" style="border-radius:16px;padding:16px">
         <form id="analysisForm">
@@ -567,8 +566,8 @@ function route(){
   if(m){ app.className='detail'; app.innerHTML = renderDetail(+m[1]); loadHistorical(+m[1]); window.scrollTo(0,0); document.title='物件の詳細 - すぐ埋まる？ナビ'; return; }
   app.className='';
   if(h==='#/keep'){ app.innerHTML=renderKeep(); document.title='キープ - すぐ埋まる？ナビ'; }
-  else if(h==='#/analyze'){ app.innerHTML=renderAnalyze(); document.title='物件を分析 - すぐ埋まる？ナビ'; }
-  else { app.innerHTML=renderList(); document.title='すぐ埋まる？ナビ - 画面イメージ'; }
+  else if(h==='#/samples'){ app.innerHTML=renderList(); document.title='サンプル物件11件 - すぐ埋まる？ナビ'; }
+  else { app.innerHTML=renderAnalyze(); document.title='物件を分析 - すぐ埋まる？ナビ'; }
   window.scrollTo(0, prevDetail ? state.listScroll : 0);
 }
 const rerender = () => { const y=window.scrollY; route(); window.scrollTo(0,y); };
