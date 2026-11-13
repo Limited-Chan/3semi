@@ -1,11 +1,19 @@
 """すぐ埋まる？ナビ: 発表用 Web デモ。個別予測は学習済みモデルの配置後に有効化。"""
 from pathlib import Path
 import csv
+import sys
+from functools import lru_cache
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 HERE = Path(__file__).resolve().parent
+REPO = HERE.parent
+OHORI = REPO / "Ohori"
+MODEL_CANDIDATES = [
+    HERE / "models" / "final_model2_age_layout.joblib",
+    OHORI / "results" / "07_final_test" / "final_model2_age_layout.joblib",
+]
 app = FastAPI(title="すぐ埋まる？ナビ", version="0.1.0")
 
 
@@ -69,6 +77,37 @@ class PredictionRequest(BaseModel):
     properties: list[Property] = Field(max_length=500)
 
 
+
+@lru_cache(maxsize=1)
+def _loaded_model():
+    """Only load trusted local model artifacts; joblib files must not come from untrusted sources."""
+    model_path = next((p for p in MODEL_CANDIDATES if p.is_file()), None)
+    if model_path is None:
+        return None
+    import joblib
+    return joblib.load(model_path)
+
+
+def _predict_probabilities(properties):
+    import pandas as pd
+    if str(OHORI) not in sys.path:
+        sys.path.insert(0, str(OHORI))
+    from src.discrete_model import predict_horizon_probability
+
+    model = _loaded_model()
+    if model is None:
+        return None
+    frame = pd.DataFrame([{
+        "age": p.age, "rent": p.rent, "area": p.area,
+        "walk_distance": p.walk_distance, "layout": p.layout,
+        "station": p.station, "start_month": p.start_month
+    } for p in properties])
+    return [float(predict_horizon_probability(
+        model, frame.iloc[[i]], landmark=p.elapsed_day, horizon=7,
+        use_age_layout_combo=True,
+    )[0]) for i, p in enumerate(properties)]
+
+
 @app.get("/")
 def home():
     return FileResponse(HERE / "static" / "index.html")
@@ -76,12 +115,23 @@ def home():
 
 @app.get("/api/status")
 def status():
-    return {"model_ready": False, "historical_risk_ready": True, "mode": "historical-12-day", "threshold": 0.15}
+    return {"model_ready": any(p.is_file() for p in MODEL_CANDIDATES), "historical_risk_ready": True, "mode": "model-if-available-else-historical", "threshold": 0.15}
 
 
 @app.post("/api/predict")
 def predict(request: PredictionRequest):
-    raise HTTPException(status_code=503, detail="学習済みモデルが未配置です。現在の高低ラベルは研究の過去実績に基づく区分であり、個別物件の予測モデルではありません。")
+    try:
+        values = _predict_probabilities(request.properties)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"モデル推論に失敗: {type(error).__name__}") from error
+    if values is None:
+        raise HTTPException(status_code=503, detail="学習済みModel 2がありません。Ohori/results/07_final_test/final_model2_age_layout.joblib に配置してください。")
+    return {
+        "mode": "final-model2",
+        "threshold": 0.15,
+        "results": [{"id": p.id, "risk": value, "level": "hi" if value >= .15 else "lo"}
+                    for p, value in zip(request.properties, values)],
+    }
 
 
 @app.get("/api/historical")
