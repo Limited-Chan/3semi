@@ -256,7 +256,7 @@ function chipGroup(key){
 }
 function filterFields(){
  return '<section><h3>間取り</h3>'+chipGroup('layout')+'</section>'+
- '<section><h3>家賃の上限</h3><select class="field" id="filterRent" aria-label="家賃の上限">'+optionHtml(unique('rent'),state.rent)+'</select></section>'+
+ '<section><h3>家賃帯</h3><select class="field" id="filterRent" aria-label="家賃の上限">'+optionHtml(unique('rent_band'),state.rent)+'</select></section>'+
  '<section><h3>築年数</h3><select class="field" id="filterAge" aria-label="築年数">'+optionHtml(unique('age_band'),state.age)+'</select></section>'+
  '<section><h3>キーワード</h3><input class="field" id="filterSearch" placeholder="例：1K / 6〜8" value="'+esc(state.search)+'"></section>'+
  '<section><label><input type="checkbox" id="onlySaved" '+(state.onlySaved?'checked':'')+'> お気に入りだけ</label></section>';
