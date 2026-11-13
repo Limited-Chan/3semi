@@ -126,7 +126,11 @@ function updateResults(){
 }
 function detail(id){
  const g=groups.find(x=>x.id===id);
- if(!g){location.hash='#/';return;}
+ if(!g){
+  if(loadState==='loading'){navRender('#/');app.innerHTML='<div class="empty">分析データを読み込み中です。</div>';return;}
+  if(loadState==='error'){navRender('#/');app.innerHTML='<div class="empty">分析データを読み込めませんでした。<p><a class="btn" href="#/">一覧に戻る</a></p></div>';return;}
+  location.hash='#/';return;
+ }
  navRender('#/');
  const recommendation=g.level==='hi'?'問い合わせを早めに検討する材料になります':'ほかの条件と比較しながら検討できます';
  app.innerHTML='<div class="detail-card"><a class="crumb" href="#/">← 研究データ一覧へ</a><h1>'+esc(g.layout)+'・築'+esc(g.age_band)+'</h1><div class="price">家賃 '+esc(g.rent_band)+'万円</div><p class="muted">国分寺市の過去'+number(g.count)+'件を集計した条件です。</p>'+
