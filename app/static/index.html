@@ -471,7 +471,7 @@ function toggleKeep(id){
 
 /* ===== イベント ===== */
 document.addEventListener('click', e=>{
-  const t = e.target.closest('[data-keep],[data-level],[data-open],[data-close],[data-back],[[data-demo],[data-reset],[data-clear],[data-chip]');
+  const t = e.target.closest('[data-keep],[data-level],[data-open],[data-close],[data-back],[data-demo],[data-reset],[data-clear],[data-chip]');
   if(e.target.tagName==='DIALOG'){ e.target.close(); return; }
   if(!t) return;
   if(t.dataset.keep){ e.preventDefault(); toggleKeep(+t.dataset.keep); }
