@@ -393,11 +393,11 @@ function renderDetail(id){
     </div></div>
     <div class="dr"><div class="panel">
       <h2>終わりやすさの目安<button class="info" data-open="help" aria-label="目安についての説明を見る">${ICON.info}</button></h2>
-      <div class="mark ${p.level==='lo'?'lo':''}"><div class="row">${badge(p.level)}<span class="t">${p.level==='unknown'?'過去実績が不足しています。':`過去の同条件では、掲載12日目から7日以内に終了した割合は${(p.historicalRisk*100).toFixed(1)}%です。`}</span></div>
+      <div class="mark ${p.level==='lo'?'lo':''}"><div class="row">${badge(p.level)}<span class="t">${p.level==='unknown'?'過去実績が不足しています。':`${window.riskMode==='model'?'研究モデルによる今後7日以内の掲載終了予測':'同条件物件の掲載12日目から7日以内の過去実績'}：${((p.modelRisk??p.historicalRisk)*100).toFixed(1)}%`}</span></div>
         <p class="note">掲載が終わっても、成約したとは限りません。</p>
         <details class="more"><summary>くわしく見る</summary>
           ${p.level==='hi'?'<p>15%は分類の境界であり、実際に終了する確率が一律85%という意味でもありません。</p>':''}
-          <p>画面の高・低は、掲載12日目から7日以内に終了した同条件物件の過去割合で区分しています。研究モデルの個別予測ではありません。</p></details></div>
+          <p>学習済みモデルがある場合は、研究モデルが推定した7日以内の掲載終了確率で高・低を判定します。モデル未配置時は、掲載12日目を条件とした過去の同条件物件の実績に切り替えます。</p></details></div>
       <div class="rec"><h3>同じ条件の過去の実績</h3>
         ${s?`<p class="key">半分の物件が、${s[2]<1?'掲載当日':`約${s[2]}日`}までに終わりました。</p>
           <details class="more"><summary>グラフと説明を見る</summary>
@@ -464,22 +464,34 @@ async function loadHistorical(id){
 }
 
 async function loadRiskLabels() {
-  const payload={properties:LISTINGS.map(p=>({id:p.id,layout:p.layout,age:p.age,rent_man:p.rent}))};
+  const modelInput={properties:LISTINGS.map(p=>({
+    id:p.id, layout:p.layout, age:p.age, rent:p.rent*10000,
+    area:p.area, walk_distance:p.st[0][1], station:p.st[0][0],
+    start_month:6, city:'国分寺市', elapsed_day:p.days
+  }))};
+  let endpoint='/api/predict', data=modelInput;
+  let mode='model';
   try {
-    const res=await fetch('/api/historical-risks',{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(!res.ok)throw new Error(String(res.status));
-    const body=await res.json();
-    const byId=new Map(body.results.map(x=>[x.id,x]));
-    for(const p of LISTINGS) {
+    let res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(res.status===503) {
+      mode='historical';
+      endpoint='/api/historical-risks';
+      data={properties:LISTINGS.map(p=>({id:p.id,layout:p.layout,age:p.age,rent_man:p.rent}))};
+      res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    }
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const body=await res.json(), byId=new Map(body.results.map(x=>[x.id,x]));
+    for(const p of LISTINGS){
       const result=byId.get(p.id);
       p.level=result?.level||'unknown';
-      p.historicalRisk=result?.risk??null;
+      p.historicalRisk=mode==='historical' ? (result?.risk??null) : null;
+      p.modelRisk=mode==='model' ? (result?.risk??null) : null;
     }
+    window.riskMode=mode;
     rerender();
-  } catch(e) {
-    console.error('過去実績の分類APIに接続できません',e);
-    toast('過去実績を取得できません。サーバーの起動を確認してください。');
+  }catch(e){
+    console.error('掲載終了リスク取得に失敗:',e);
+    toast('掲載終了リスクを取得できません。サーバーを確認してください。');
   }
 }
 
