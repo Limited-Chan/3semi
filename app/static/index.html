@@ -322,9 +322,9 @@ function card(p){
 
 function renderNav(cur){
   return `<nav class="nav" aria-label="メイン">
-    <a href="#/" ${cur==='analyze'?'aria-current="page"':''}>${ICON.clock}物件を分析</a>
-    <a href="#/samples" ${cur==='samples'?'aria-current="page"':''}>${ICON.home}サンプル一覧</a>
-    <a href="#/keep" ${cur==='keep'?'aria-current="page"':''}>${ICON.heart}<span>キープ${state.keep.size?`<i>${state.keep.size}</i>`:''}</span></a>
+    <a href="#/" ${cur==='groups'?'aria-current="page"':''}>${ICON.home}研究データ</a>
+    <a href="#/analyze" ${cur==='analyze'?'aria-current="page"':''}>${ICON.clock}物件を分析</a>
+    <a href="#/samples" ${cur==='samples'?'aria-current="page"':''}>${ICON.search}操作デモ</a>
   </nav>`;
 }
 const demoBar = () => state.demoOpen ? `<div class="demo" role="note"><span>物件情報はデモ用です。掲載終了リスクの高・低は研究の過去実績から自動計算しています。</span><button data-demo="close" aria-label="この案内を閉じる">閉じる</button></div>` : '';
@@ -370,6 +370,80 @@ function renderKeep(){
    <div class="list">${items.map(card).join('')}</div>`
   : `<div class="empty"><p>キープした物件はまだありません。<br>気になる物件のハートを押すと、ここで並べて比べられます。</p><a class="btn" style="display:inline-flex;align-items:center" href="#/">物件をさがす</a></div>`}
   ${renderNav('keep')}`;
+}
+
+let historicalGroups=[];
+let historicalLoadError='';
+async function fetchHistoricalGroups(){
+  try{
+    const response=await fetch('/api/groups');
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    historicalGroups=(await response.json()).groups;
+    historicalLoadError='';
+    if((location.hash||'#/')==='#/') rerender();
+  }catch(e){
+    historicalLoadError=String(e);
+    if((location.hash||'#/')==='#/') rerender();
+  }
+}
+function renderGroups(){
+  const groupOptions=['すべて', ...new Set(historicalGroups.map(g=>g.layout))];
+  const cards=historicalGroups.map(g=>{
+    const rate=(g.day12_next7_rate*100).toFixed(1);
+    const hi=g.level==='hi';
+    return `<article class="card" style="padding:15px">
+      <div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between">
+        <div><b style="font-size:18px">${esc(g.layout)}・${esc(g.age_band)}</b><div class="sta">家賃 ${esc(g.rent_band)}万円・過去${g.count.toLocaleString()}件</div></div>
+        <span class="badge ${hi?'hi':'lo'}">${hi?'高':'低'}</span>
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:baseline;gap:8px">
+        <strong style="font-size:28px;color:var(--brand)">${rate}%</strong>
+        <span style="font-size:12px;color:var(--sub)">掲載12日目から7日以内の掲載終了割合</span>
+      </div>
+      <div class="sta">掲載開始から半数が終了するまで：${g.median_days}日</div>
+      <button class="btn" data-group="${g.id}" style="width:100%;margin-top:12px;min-height:42px">この条件の分析結果を見る</button>
+    </article>`;
+  }).join('');
+  return `<header class="top"><div style="padding:16px"><b style="font-size:20px;color:var(--brand)">研究データから掲載終了リスクを調べる</b><p class="note">国分寺市の賃貸掲載データを間取り・築年数・家賃帯ごとに分析した結果を表示しています。</p></div></header>
+    <div style="max-width:1120px;margin:0 auto;width:100%;padding:16px 12px 30px">
+    <div class="legend" style="margin:0 0 14px"><b>全国の物件一覧ではなく、実際の研究から得た条件別集計（40グループ）です。</b>
+    15%以上を高、未満を低と表示。これは掲載12日目の過去実績による区分で、個別物件の機械学習予測ではありません。</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px">
+      <strong id="groupCount">${historicalGroups.length}条件</strong>
+      <label>間取り <select class="sort" id="groupLayoutFilter">${groupOptions.map(x=>`<option>${esc(x)}</option>`).join('')}</select></label>
+    </div>
+    <div class="list" id="historicalGroupList" style="padding:0;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+      ${historicalGroups.length?cards:`<div class="empty">${historicalLoadError?'集計データの取得に失敗しました。サーバーを確認してください。':'研究データを読み込み中...'}</div>`}
+    </div>
+    <p class="note">掲載終了は成約とは限りません。過去物件の集計であり、現在の空室状況や問い合わせの結果は分かりません。</p>
+    </div>${renderNav('groups')}`;
+}
+function showHistoricalGroup(id){
+  const g=historicalGroups.find(x=>x.id===id);
+  if(!g)return;
+  const high=g.level==='hi', rate=(g.day12_next7_rate*100).toFixed(1);
+  const app=$('#app');
+  app.innerHTML=`<header class="top"><button data-group-back style="padding:14px 16px;font-weight:700;color:var(--brand)">← 研究データ一覧に戻る</button></header>
+    <div style="max-width:760px;margin:16px auto;padding:0 12px">
+    <section class="panel" style="padding:18px;border-radius:16px">
+      <h1 style="font-size:22px;margin:0 0 6px">${esc(g.layout)}・築${esc(g.age_band)}・家賃${esc(g.rent_band)}万円</h1>
+      <p class="note" style="margin:0 0 14px">国分寺市の過去${g.count.toLocaleString()}件の条件別集計</p>
+      <div class="mark ${high?'':'lo'}">
+        <h2 style="margin:0 0 8px">掲載終了リスク：${high?'高':'低'}</h2>
+        <strong style="font-size:32px;color:var(--brand)">${rate}%</strong>
+        <p>掲載12日目から、その後7日以内に掲載が終了した割合です。</p>
+        <p style="font-weight:700;margin-bottom:0">${high?'気になっているなら、問い合わせを早めに検討する材料になります。':'ほかの条件とも比較しながら検討できます。'}</p>
+      </div>
+      <div class="rec"><h3>過去の掲載終了日数</h3>
+        <p>4分の1が終了：${g.quarter_days}日</p>
+        <p>半数が終了：<strong>${g.median_days}日</strong></p>
+        <p>4分の3が終了：${g.three_quarter_days}日</p>
+        <p class="note">いずれも掲載開始日からの経過日数。将来の物件が同じ日数で終了する保証はありません。</p>
+      </div>
+      <p class="note">この高・低は過去の条件別集計から付けたものです。学習済みモデルによる個別物件の予測ではありません。掲載終了は成約を意味しません。</p>
+      <a href="#/analyze" class="btn" style="margin-top:16px;display:flex;align-items:center;justify-content:center">自分の気になる物件を分析する</a>
+    </section></div>${renderNav('groups')}`;
+  window.scrollTo(0,0);
 }
 
 function renderAnalyze(){
@@ -566,8 +640,9 @@ function route(){
   if(m){ app.className='detail'; app.innerHTML = renderDetail(+m[1]); loadHistorical(+m[1]); window.scrollTo(0,0); document.title='物件の詳細 - すぐ埋まる？ナビ'; return; }
   app.className='';
   if(h==='#/keep'){ app.innerHTML=renderKeep(); document.title='キープ - すぐ埋まる？ナビ'; }
-  else if(h==='#/samples'){ app.innerHTML=renderList(); document.title='サンプル物件11件 - すぐ埋まる？ナビ'; }
-  else { app.innerHTML=renderAnalyze(); document.title='物件を分析 - すぐ埋まる？ナビ'; }
+  else if(h==='#/samples'){ app.innerHTML=renderList(); document.title='操作デモ - すぐ埋まる？ナビ'; }
+  else if(h==='#/analyze'){ app.innerHTML=renderAnalyze(); document.title='物件を分析 - すぐ埋まる？ナビ'; }
+  else { app.innerHTML=renderGroups(); document.title='研究データ - すぐ埋まる？ナビ'; }
   window.scrollTo(0, prevDetail ? state.listScroll : 0);
 }
 const rerender = () => { const y=window.scrollY; route(); window.scrollTo(0,y); };
@@ -589,7 +664,20 @@ document.addEventListener('submit', e=>{
   }
 });
 
+document.addEventListener('change', e=>{
+  if(e.target.id==='groupLayoutFilter'){
+    const wanted=e.target.value;
+    document.querySelectorAll('#historicalGroupList [data-group]').forEach(b=>{
+      const g=historicalGroups.find(x=>x.id===Number(b.dataset.group));
+      b.closest('article').hidden=(wanted!=='すべて' && g.layout!==wanted);
+    });
+    document.getElementById('groupCount').textContent=historicalGroups.filter(g=>wanted==='すべて'||g.layout===wanted).length+'条件';
+  }
+});
 document.addEventListener('click', e=>{
+  const groupBtn=e.target.closest('[data-group]');
+  if(groupBtn){showHistoricalGroup(Number(groupBtn.dataset.group));return;}
+  if(e.target.closest('[data-group-back]')){location.hash='#/';return;}
   const t = e.target.closest('[data-keep],[data-level],[data-open],[data-close],[data-back],[data-demo],[data-reset],[data-clear],[data-chip]');
   if(e.target.tagName==='DIALOG'){ e.target.close(); return; }
   if(!t) return;
@@ -611,6 +699,7 @@ document.addEventListener('change', e=>{
     document.querySelector(`${inSide?'.side ':'#filterDlg '}[data-sel="${k}"]`)?.focus(); }
 });
 route();
+fetchHistoricalGroups();
 loadRiskLabels();
 </script>
 </body>
