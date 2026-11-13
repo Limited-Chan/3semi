@@ -1,29 +1,34 @@
-# すぐ埋まる？ナビ — Webアプリ試作版
-
-**画面はユーザーが提供したレスポンシブHTMLをそのまま基準に使用**。研究用の別モック `Yamamoto/room_level/presentation/app_mockup.html` はアプリ画面に使っていません。
+# すぐ埋まる？ナビ（研究の実績データ連携デモ）
 
 ## 起動
 ```bash
+git pull origin main
 cd app
 python -m pip install -r requirements.txt
 python -m uvicorn main:app --reload
 ```
 http://127.0.0.1:8000/ を開く。
 
-## 構成
-- `static/index.html`: ユーザー提供のHTML/CSS/JavaScriptを基本にしたPC・スマホ対応画面。物件一覧、絞り込み、詳細、キープ比較、localStorage。
-- `main.py`: FastAPI。HTML配信、研究集計API、モデル状態API。
-- `historical.csv`: 既存研究の集計（40条件）。出典 `Yamamoto/room_level/summary_tables/24_same_condition_duration.csv`。
-- `requirements.txt`: Python依存関係。
+## フォルダ・構成
+- `static/index.html`: ユーザーが指定したスマホ/PC対応HTMLがデザインの原本。検索、並び替え、詳細、キープ、比較などをJavaScriptで提供。
+- `main.py`: FastAPI。画面配信と掲載終了実績APIを提供。
+- `historical.csv`: 国分寺市・2020〜2023年掲載開始の同条件物件集計（40条件）。GitHubの `Yamamoto/room_level/summary_tables/24_same_condition_duration.csv` に由来。
+- `requirements.txt`: FastAPI・Uvicornなど。
 
-## API
-- `GET /api/status`: モデル未配置の状態を返す。
-- `GET /api/historical?layout=1K&age=7&rent_man=7.2`: 国分寺市の同条件物件に基づく、掲載12日目からの7日間の実績。物件詳細画面はこのAPIを呼び出す。
-- `POST /api/predict`: 未実装（503）。学習済みモデルと元データがGitHubにない。
+## 実装済み機能
+- 11件のサンプル物件（架空）の検索、絞り込み、並び替え。
+- 物件カードと詳細ページ。
+- キープと比較（localStorageで保存）。
+- 研究の過去実績から、**掲載12日目を基準にした次の7日以内の掲載終了割合**を実際のAPIで取得して表示。
+- 上記の実績割合が15%以上なら「高」、未満なら「低」を**APIが自動判定**し、一覧・詳細に表示。
+- `POST /api/historical-risks` 一括取得。
+- `GET /api/historical?layout=1K&age=7&rent_man=7.2` 単件取得。
+- `GET /api/status` 状態確認。
 
-## 実装済みと未実装を区別
-検索、詳細、キープとキープ比較は、提供されたHTMLのJavaScriptを活用して画面上で動作します。画面の物件11件と高低ラベルは**架空のデモデータ**。研究モデルの結果ではありません。
+## 重要
+これは **過去の同条件の集計からリスクを区分する動作版** です。卒研で使った学習済み離散時間ハザードモデルを読み込んだ個別推論ではありません。元データTSVと学習済みモデルはGitHubにないため、`POST /api/predict`（個別モデル推論）は503を返します。
 
-過去集計はCSVの実際の集計値に基づきます。ただし**過去実績と個別物件の予測は別物**。掲載終了は成約とは限りません。元のNII/LIFULL賃貸データや学習済みモデルはリポジトリに含まれていません。
+比較条件を揃えるためデモ11件の掲載日数は12日目に統一しました。割合は過去の集計に基づくもので、各物件の成約・実際の掲載終了を保証しません。掲載終了は成約とは限りません。元データの再配布は行いません。
 
-`Ohori/src/discrete_model.py` と `Yamamoto/room_level/analysis/17_fixed_window_features.py` にある研究コードは今後の学習モデル接続に利用できます。現在はモデル推論は動作しません。
+### モデルへの切り替え
+元データ `bukken_rent_v1.0.1.tsv` をローカルで用意し、既存の `Yamamoto/room_level/analysis/17_fixed_window_features.py` と `Ohori/src/discrete_model.py` の条件に合わせて学習・保存したモデルを接続する必要があります。
