@@ -86,7 +86,6 @@ function number(n){return Number(n).toLocaleString('ja-JP');}
 function badge(g){return '<span class="tag '+(g.level==='hi'?'high':'low')+'">'+(g.level==='hi'?'終わりやすい':'終わりにくい')+'</span>';}
 function label(g){return g.layout+' / 築'+g.age_band+' / '+g.rent_band+'万円';}
 function heading(h,t){return '<div class="intro"><h1>'+h+'</h1><p>'+t+'</p></div>';}
-function notice(){return '<div class="notice"><strong>研究結果の読み方：</strong>1件のカードは「実在する1物件」ではなく、間取り・築年数帯・家賃帯が同じ複数物件の<strong>集計グループ</strong>です。過去12日間掲載されていた物件が、その後7日以内に掲載終了した割合を表示しています。掲載終了は成約を意味しません。</div>';}
 function navRender(active){
  const tabs=[['#/','掲載データ'],['#/groups','集計結果'],['#/analyze','物件を分析'],['#/saved','キープ・比較']];
  nav.innerHTML=tabs.map(t=>'<a '+(active===t[0]?'class="active" aria-current="page" ':'')+'href="'+t[0]+'">'+t[1]+(t[0]==='#/saved'&&saved.size?' ('+saved.size+')':'')+'</a>').join('');
@@ -106,7 +105,6 @@ function card(g){
 function home(){
  navRender('#/groups');
  app.innerHTML='<section class="hero"><div><h1>気になる物件、<br>早めに問い合わせたほうがいい？</h1><p>国分寺市の賃貸掲載データから、条件ごとの「掲載の終わりやすさ」を比べられます。実際の研究データを使った分析ナビです。</p></div></section>'+
- notice()+
  '<div class="layout"><aside class="panel"><h2>条件から探す</h2><div class="filter-grid">'+
  '<div class="field"><label for="filterSearch">キーワード</label><input id="filterSearch" placeholder="例：1K / 6〜8" value="'+esc(state.search)+'"></div>'+
  '<div class="field"><label for="filterLayout">間取り</label><select id="filterLayout">'+optionHtml(unique('layout'),state.layout)+'</select></div>'+
@@ -162,7 +160,7 @@ function analysisForm(){
  '<div class="field"><label for="start_month">掲載開始月</label><select id="start_month" name="start_month">'+Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'"'+(i===5?' selected':'')+'>'+(i+1)+'月</option>').join('')+'</select></div>'+
  '</div><p class="small">※駅名は研究データに含まれる名前と一致するよう入力してください。近い条件の集計には間取り・築年数・家賃帯のみを使用します。</p>'+
  '<button class="btn" type="submit" style="width:100%;margin-top:10px">終わりやすさを分析する</button></form><div id="analysisOutput" aria-live="polite"></div></section>'+
- '<div class="notice" style="max-width:760px;margin:18px auto"><strong>予測について：</strong>研究モデルのファイルがローカルにあればモデル推論を使います。なければ過去実績だけを表示し、個別物件の予測値を作りません。</div>';
+ '';
 }
 async function submitAnalysis(form){
  const el=document.getElementById('analysisOutput');
@@ -196,7 +194,6 @@ function listingsPage(){
  '<div class="empty">該当する掲載記録がありません。</div>';
  const pages=Math.max(1,Math.ceil(listingState.total/listingState.limit));
  app.innerHTML='<div class="intro"><h1>国分寺市の過去掲載データ</h1><p>抽出済みの実際の掲載記録を読み込み、気になる物件を探して分析できます。</p></div>'+
- '<div class="notice"><strong>重要：</strong>表示するのは2020〜2023年の過去の掲載記録です。現在募集している物件ではありません。また、過去の掲載終了は成約を意味しません。</div>'+
  '<div class="layout"><aside class="panel"><h2>物件を探す</h2><form id="listingFilterForm" class="filter-grid">'+
  '<div class="field"><label for="lq">間取り・駅名</label><input id="lq" name="query" value="'+esc(listingState.query)+'" placeholder="例：国分寺 / 1K"></div>'+
  '<div class="field"><label for="ll">間取り</label><select id="ll" name="layout">'+optionHtml(['すべて','1R','1K','1DK','1LDK','2DK','2LDK','3DK','3LDK'],listingState.layout||'すべて')+'</select></div>'+
