@@ -457,7 +457,7 @@ async function loadHistorical(id){
     if(!d.found){output.textContent='この条件の集計はありません。';return;}
     const pct=(d.risk_after_12_days*100).toFixed(1);
     output.innerHTML='<strong style="font-size:22px;color:var(--brand)">'+pct+'%</strong>'
-      +'<p>掲載12日目まで続いた同条件 '+Number(d.sample_size).toLocaleString()+'件の集計から、次の7日以内に掲載が終了した割合です。</p>'
+      +'<p>同条件の過去 '+Number(d.sample_size).toLocaleString()+'件をもとに、掲載12日目から次の7日以内の掲載終了割合を推定した値です。</p>'
       +'<p>これは過去の実績であり、この物件固有の予測ではありません。現在の掲載日数と混同しないでください。</p>';
   }catch(e){if(output.isConnected)output.textContent='集計APIに接続できませんでした。サーバーから起動してください。';}
 }
