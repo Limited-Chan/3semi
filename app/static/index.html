@@ -232,7 +232,7 @@ function optionHtml(values, selected){return values.map(x=>'<option value="'+esc
 function unique(key){return ['すべて',...new Set(groups.map(x=>x[key]))];}
 function filtered(){
  let a=groups.filter(g=>(state.layout==='すべて'||g.layout===state.layout)&&(state.age==='すべて'||g.age_band===state.age)&&(state.rent==='すべて'||g.rent_band===state.rent)&&(state.level==='すべて'||g.level===state.level)&&(!state.onlySaved||saved.has(g.id))&&(!state.search||label(g).toLowerCase().includes(state.search.toLowerCase())));
- return a.sort((x,y)=>state.sort==='rate'?y.day12_next7_rate-x.day12_next7_rate:state.sort==='median'?x.median_days-y.median_days:state.sort==='rent'?parseInt(x.rent_band)-parseInt(y.rent_band):y.count-x.count);
+ return a.sort((x,y)=>state.sort==='rate'?y.day12_next7_rate-x.day12_next7_rate:state.sort==='low'?x.day12_next7_rate-y.day12_next7_rate:state.sort==='rent'?parseInt(x.rent_band)-parseInt(y.rent_band):y.count-x.count);
 }
 
 
@@ -286,7 +286,7 @@ function renderList(){
  '<div class="wrap"><aside class="side" aria-label="絞り込み"><div class="dh"><h2>条件</h2><button data-clear>クリア</button></div><div class="db">'+filterFields()+'</div></aside>'+
  '<div class="content"><div class="bar"><div class="n" aria-live="polite"><em>'+items.length+'</em> 件</div>'+
  '<label><span class="sr">並び替え</span><select class="sort" data-sort>'+
- [['count','データが多い順'],['rate','終わりやすい順'],['median','掲載終了までが早い順'],['rent','家賃が安い順']].map(x=>'<option value="'+x[0]+'" '+(state.sort===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+
+ [['count','物件数が多い順'],['rate','終わりやすい順'],['low','終わりにくい順'],['rent','家賃が安い順']].map(x=>'<option value="'+x[0]+'" '+(state.sort===x[0]?'selected':'')+'>'+x[1]+'</option>').join('')+
  '</select></label></div>'+
  '<div class="legend"><b>1週間以内に掲載が終わりやすいかの目安です。</b>掲載が終わっても、成約したとは限りません。 <button data-open="help">くわしく</button></div>'+
  (loadState==='loading'?'<div class="empty">読み込み中です。</div>':loadState==='error'?'<div class="empty">読み込みに失敗しました。<button class="btn" id="retry">再試行</button></div>':items.length?'<div class="list">'+items.map(card).join('')+'</div>':'<div class="empty"><p>条件に合う物件がありません。</p><button data-reset>条件をゆるめる</button></div>')+
@@ -294,7 +294,7 @@ function renderList(){
 }
 function home(){app.className='';app.innerHTML=renderList();}
 function savedPage(){
- const items=groups.filter(g=>saved.has(g.id)).sort((a,b)=>state.sort==='rate'?b.day12_next7_rate-a.day12_next7_rate:state.sort==='median'?a.median_days-b.median_days:state.sort==='rent'?parseInt(a.rent_band)-parseInt(b.rent_band):b.count-a.count);
+ const items=groups.filter(g=>saved.has(g.id)).sort((a,b)=>state.sort==='rate'?b.day12_next7_rate-a.day12_next7_rate:state.sort==='low'?a.day12_next7_rate-b.day12_next7_rate:state.sort==='rent'?parseInt(a.rent_band)-parseInt(b.rent_band):b.count-a.count);
  const rows=items.map(g=>'<tr><td><a href="#/group/'+g.id+'"><b>'+esc(g.layout)+'</b> '+moneyBand(g)+'万円<br><small>築'+esc(g.age_band)+'</small></a></td><td>'+badge(g)+'</td><td>12日目を基準</td><td>約'+g.median_days+'日</td></tr>').join('');
  app.className='';
  app.innerHTML='<header class="top"><div style="padding:14px 16px 10px"><b style="font-size:16px">お気に入りの物件</b></div></header>'+
