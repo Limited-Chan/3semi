@@ -134,6 +134,69 @@ def predict(request: PredictionRequest):
     }
 
 
+
+class AnalyzeRequest(BaseModel):
+    layout: str
+    age: float = Field(ge=0, le=150)
+    rent_man: float = Field(gt=0, le=300)
+    area: float = Field(gt=0, le=1000)
+    walk_distance: float = Field(ge=0, le=120)
+    station: str
+    start_month: int = Field(ge=1, le=12)
+    elapsed_day: int = Field(ge=0, le=365)
+
+
+@app.post("/api/analyze")
+def analyze_property(request: AnalyzeRequest):
+    """Analyze a user-supplied listing using existing model if locally available.
+
+    If no model: show only past conditional statistics for day 12, not a
+    personalized current-day prediction.
+    """
+    row = _find_historical(request.layout, request.age, request.rent_man)
+    history = None
+    if row:
+        history = {
+            "count": int(row["件数"]),
+            "median_days_from_start": float(row["半分が終わる日"]),
+            "q75_days_from_start": float(row["75%が終わる日"]),
+            "day12_next7_rate": round(float(row["12日載った物件が、あと7日以内に終わる割合"]), 6),
+            "comparison": "同じ間取り・築年数帯・家賃帯の国分寺市過去物件",
+        }
+    prop = Property(
+        id=1, age=request.age, rent=request.rent_man * 10000,
+        area=request.area, walk_distance=request.walk_distance,
+        layout=request.layout, station=request.station,
+        start_month=request.start_month, city="国分寺市",
+        elapsed_day=request.elapsed_day,
+    )
+    try:
+        values = _predict_probabilities([prop])
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"学習済みモデルによる分析に失敗: {type(error).__name__}") from error
+
+    if values is not None:
+        risk = values[0]
+        high = risk >= 0.15
+        return {
+            "mode": "model", "risk": risk, "level": "hi" if high else "lo",
+            "heading": "問い合わせを優先して検討" if high else "ほかの物件とも比較して検討",
+            "reason": "研究モデルの7日以内の掲載終了予測が15%以上です。" if high
+                      else "研究モデルの7日以内の掲載終了予測が15%未満です。",
+            "historical": history,
+            "caution": "掲載終了は成約ではありません。研究の予測は問い合わせの成果や空室状況を保証しません。",
+        }
+    return {
+        "mode": "historical", "risk": None, "level": None,
+        "heading": "過去の実績を参考に検討",
+        "reason": ("個別予測モデルが未配置です。"
+                   + ("掲載12日目時点の過去実績は参照できますが、現在の掲載経過日数に対応した予測ではありません。"
+                      if history else "一致する条件の十分な過去実績もありません。")),
+        "historical": history,
+        "caution": "モデル不在時、過去の条件別割合を個別物件の予測や問い合わせ推奨に置き換えません。",
+    }
+
+
 @app.get("/api/historical")
 def historical(layout: str, age: float, rent_man: float):
     """12日間掲載中だった同条件物件の、その後7日以内の過去の掲載終了割合。"""
