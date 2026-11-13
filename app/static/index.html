@@ -97,6 +97,10 @@ main{max-width:1130px;padding:14px 16px 80px}
 .tile:nth-child(4n+4) .property-cover{background:linear-gradient(135deg,#ac81be,#a65294)}
 .property-heart{position:absolute;right:10px;top:10px;width:45px;height:45px;border:0;border-radius:50%;background:#ffffffed;color:#6b7280;display:grid;place-items:center;font-size:26px;line-height:1;box-shadow:0 2px 5px #00000011}
 .property-heart[aria-pressed=true]{color:var(--wine)}
+.property-heart{z-index:2}
+.card-open{position:absolute;inset:0;z-index:1;border-radius:17px;cursor:pointer}
+.card-open:focus-visible{outline:3px solid #437ad0;outline-offset:-4px}
+.tile{cursor:pointer}
 .property-main{padding:13px 14px 14px;display:flex;flex-direction:column;flex:1}
 .property-main .price{margin:0 0 8px;font-size:22px;color:#1f2937}
 .property-main .price small{font-size:12px;font-weight:500}
@@ -153,7 +157,8 @@ function card(g){
  '<div class="property-main"><div class="price">'+esc(g.rent_band)+'<small>万円（家賃帯）</small></div>'+
  '<div class="property-chips"><span>'+esc(g.layout)+'</span><span>築'+esc(g.age_band)+'</span><span>家賃 '+esc(g.rent_band)+'万円</span></div>'+
  '<p class="property-note">国分寺市周辺・同条件の掲載傾向</p>'+
- '<div class="property-foot"><span class="foot-caption">1週間以内に</span>'+status+'<a class="property-action" href="#/group/'+g.id+'">分析を見る</a></div></div></article>';
+ '<div class="property-foot"><span class="foot-caption">1週間以内に</span>'+status+'</div></div>'+
+ '<a class="card-open" href="#/group/'+g.id+'" aria-label="'+esc(label(g))+' の詳細を見る"></a></article>';
 }
 function home(){
  navRender('#/');
