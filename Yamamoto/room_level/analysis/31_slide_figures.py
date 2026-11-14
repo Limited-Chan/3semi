@@ -607,7 +607,7 @@ def fig_baselines(c22: pd.DataFrame, c23: pd.DataFrame) -> None:
     if TALK:
         ax.grid(axis="x", visible=True)
         ax.grid(axis="y", visible=False)
-    ax.set_xlabel("高と低の差(ポイント)")
+    ax.set_xlabel("「終わりやすい」群と「終わりにくい」群の差\n(ポイント)" if TALK else "高と低の差(ポイント)")
     fig.tight_layout()
     save(fig, "31e_baselines.png")
 
